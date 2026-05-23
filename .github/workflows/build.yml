@@ -1,7 +1,7 @@
 name: AI Tools Daily
 on:
   schedule:
-    - cron: '0 0  *'   # 每天 UTC 0点（北京 8 点）更新
+    - cron: '0 0 * * *'   # 每天 UTC 0点（北京 8 点）更新
   push:
     branches: [main]
   workflow_dispatch:

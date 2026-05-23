@@ -283,7 +283,7 @@ footer {
       <span class="dot"></span>
       <span>📡 <b>__SOURCES__</b> 个源</span>
       <span class="dot"></span>
-      <span>🕒 TIME</span>
+      <span>🕒 __TIME__</span>
     </div>
   </header>
   <div class="search-bar">
@@ -291,7 +291,7 @@ footer {
   </div>
   <div class="tabs" id="tabs"></div>
   <main id="content">
-BODY
+__BODY__
   </main>
   <footer>
     <p>🤖 Powered by GitHub Actions · 每天 8:00 自动更新</p>
@@ -371,5 +371,5 @@ def main():
     with open(out, "w", encoding="utf-8") as f:
         f.write(build_html(all_items))
     print(f"\n✅ 生成 {out}（{len(all_items)} 条）")
-if name == "__main__":
+if __name__ == "__main__":
     main()
