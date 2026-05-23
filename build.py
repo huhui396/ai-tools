@@ -4,6 +4,7 @@ AI 工具情报站 - 每天自动聚合 AI 领域信息源
 """
 import html
 import os
+import re
 from datetime import datetime, timedelta, timezone
 import feedparser
 import requests
@@ -42,10 +43,13 @@ def parse_feed(name, url):
     parsed = feedparser.parse(raw)
     items = []
     for entry in parsed.entries[:PER_FEED_LIMIT]:
+        summary = entry.get("summary") or entry.get("description") or ""
+        summary = re.sub(r"<[^>]+>", "", summary).strip()[:80]
         items.append({
             "title": (entry.get("title") or "无标题").strip(),
             "link": (entry.get("link") or "#").strip(),
             "source": name,
+            "summary": summary,
         })
     print(f"  ok: {len(items)}")
     return items
@@ -106,7 +110,7 @@ body {
 .wrapper { max-width: 760px; margin: 0 auto; }
 header { text-align: center; padding: 28px 12px 24px; }
 header h1 {
-  font-size: 2.4rem;
+  font-size: 1.7rem;
   font-weight: 900;
   letter-spacing: -0.03em;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -167,7 +171,9 @@ header .subtitle { font-size: 1.05rem; color: var(--muted); margin-top: 12px; fo
   box-shadow: var(--shadow); transition: transform 0.15s, border-color 0.15s;
 }
 .card:active { transform: scale(0.985); border-color: var(--accent); }
-.title { flex: 1; font-size: 1.15rem; font-weight: 600; line-height: 1.45; word-break: break-word; }
+.title { font-size: 1.15rem; font-weight: 600; line-height: 1.45; word-break: break-word; }
+.card-body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.summary { font-size: 0.92rem; color: var(--muted); line-height: 1.45; word-break: break-word; }
 .arrow { font-size: 1.7rem; color: var(--muted); flex-shrink: 0; }
 .empty { text-align: center; color: var(--muted); padding: 80px 0; }
 footer {
@@ -190,7 +196,7 @@ footer {
 <div class="wrapper">
   <header>
     <h1>🤖 AI 工具情报站</h1>
-    <p class="subtitle">每天自动聚合全球 AI 工具、论文、新闻</p>
+    <p class="subtitle">每天 5 分钟，跟上全球 AI 圈</p>
     <div class="stats">
       <span>📰 <b>__TOTAL__</b> 条</span>
       <span class="dot"></span>
@@ -256,8 +262,9 @@ def build_html(articles):
     for source, items in by_source.items():
         cards = "\n".join(
             f'      <a class="card" href="{html.escape(it["link"])}" target="_blank" rel="noopener">'
-            f'<span class="title">{html.escape(it["title"])}</span>'
-            f'<span class="arrow">›</span></a>'
+            f'<div class="card-body"><span class="title">{html.escape(it["title"])}</span>'
+            + (f'<span class="summary">{html.escape(it.get("summary",""))}</span>' if it.get("summary") else "")
+            + f'</div><span class="arrow">›</span></a>'
             for it in items
         )
         sections.append(
