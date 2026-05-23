@@ -7,9 +7,6 @@ import os
 from datetime import datetime, timedelta, timezone
 import feedparser
 import requests
-# ============================================================
-# AI 领域精选信息源
-# ============================================================
 FEEDS = {
     "🔥 Product Hunt": "https://www.producthunt.com/feed?category=artificial-intelligence",
     "📰 The Decoder":   "https://the-decoder.com/feed/",
@@ -29,16 +26,16 @@ TIMEOUT = 15
 UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
       "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 "
       "Mobile/15E148 Safari/604.1")
-def fetch(url: str):
+def fetch(url):
     try:
         r = requests.get(url, headers={"User-Agent": UA}, timeout=TIMEOUT)
         r.raise_for_status()
         return r.content
     except Exception as e:
-        print(f"  ✗ {e}")
+        print(f"  fail: {e}")
         return None
-def parse_feed(name: str, url: str):
-    print(f"→ {name}")
+def parse_feed(name, url):
+    print(f"-> {name}")
     raw = fetch(url)
     if not raw:
         return []
@@ -49,9 +46,8 @@ def parse_feed(name: str, url: str):
             "title": (entry.get("title") or "无标题").strip(),
             "link": (entry.get("link") or "#").strip(),
             "source": name,
-            "summary": (entry.get("summary") or "")[:200].strip(),
         })
-    print(f"  ✓ {len(items)}")
+    print(f"  ok: {len(items)}")
     return items
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -60,8 +56,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#eef2ff" media="(prefers-color-scheme: light)">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="description" content="AI 工具与资讯每日聚合 - 一站阅尽全球 AI 动态">
 <title>🤖 AI 工具情报站</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🤖%3C/text%3E%3C/svg%3E">
 <style>
@@ -99,15 +93,13 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html { font-size: 18px; scroll-behavior: smooth; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue",
-               "Microsoft YaHei", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   background: var(--bg);
   background-image: var(--bg-grad);
   background-attachment: fixed;
   color: var(--text);
   line-height: 1.5;
-  padding: max(env(safe-area-inset-top), 16px) 14px
-           calc(env(safe-area-inset-bottom) + 80px);
+  padding: max(env(safe-area-inset-top), 16px) 14px calc(env(safe-area-inset-bottom) + 80px);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
 }
@@ -122,152 +114,73 @@ header h1 {
   background-clip: text;
   color: transparent;
 }
-header .subtitle {
-  font-size: 1.05rem;
-  color: var(--muted);
-  margin-top: 12px;
-  font-weight: 500;
-}
+header .subtitle { font-size: 1.05rem; color: var(--muted); margin-top: 12px; font-weight: 500; }
 .stats {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 18px;
-  font-size: 0.9rem;
-  color: var(--text-2);
-  background: var(--card);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  padding: 10px 20px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  display: inline-flex; align-items: center; gap: 14px; margin-top: 18px;
+  font-size: 0.9rem; color: var(--text-2);
+  background: var(--card); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  padding: 10px 20px; border-radius: 999px;
+  border: 1px solid var(--border); box-shadow: var(--shadow);
 }
 .stats b { color: var(--accent); font-weight: 800; font-size: 1.05rem; }
 .stats .dot { width: 4px; height: 4px; background: var(--muted); border-radius: 50%; }
 .search-bar { position: sticky; top: 8px; z-index: 50; margin: 20px 0 24px; }
 .search-bar input {
-  width: 100%;
-  font-size: 1.05rem;
-  padding: 16px 20px 16px 52px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  color: var(--text);
-  box-shadow: var(--shadow);
-  outline: none;
-  font-weight: 500;
+  width: 100%; font-size: 1.05rem; padding: 16px 20px 16px 52px;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: var(--card); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  color: var(--text); box-shadow: var(--shadow); outline: none; font-weight: 500;
 }
 .search-bar input:focus { border-color: var(--accent); }
 .search-bar::before {
-  content: "🔍";
-  position: absolute;
-  left: 20px; top: 50%; transform: translateY(-50%);
-  font-size: 1.1rem; opacity: 0.6; pointer-events: none;
+  content: "🔍"; position: absolute; left: 20px; top: 50%;
+  transform: translateY(-50%); font-size: 1.1rem; opacity: 0.6; pointer-events: none;
 }
-.tabs {
-  display: flex; gap: 8px; overflow-x: auto;
-  padding: 4px 2px 12px; margin-bottom: 8px;
-  scrollbar-width: none;
-}
+.tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 12px; margin-bottom: 8px; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
-  flex-shrink: 0;
-  padding: 9px 16px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  color: var(--text-2);
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
+  flex-shrink: 0; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--card); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  color: var(--text-2); font-size: 0.92rem; font-weight: 600; cursor: pointer; white-space: nowrap;
 }
-.tab.active {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: white;
-  border-color: transparent;
-}
+.tab.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; border-color: transparent; }
 .group { margin-bottom: 28px; }
 .group-title {
-  font-size: 1.3rem;
-  font-weight: 800;
-  margin: 24px 6px 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  font-size: 1.3rem; font-weight: 800; margin: 24px 6px 14px;
+  display: flex; align-items: center; gap: 12px;
 }
 .group-title::before {
-  content: "";
-  width: 5px; height: 22px;
-  background: linear-gradient(180deg, var(--accent), var(--accent-2));
-  border-radius: 4px;
+  content: ""; width: 5px; height: 22px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2)); border-radius: 4px;
 }
 .group-title .count {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--muted);
-  background: var(--card);
-  border: 1px solid var(--border);
-  padding: 3px 11px;
-  border-radius: 999px;
+  font-size: 0.78rem; font-weight: 700; color: var(--muted);
+  background: var(--card); border: 1px solid var(--border);
+  padding: 3px 11px; border-radius: 999px;
 }
 .card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--card);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 20px;
-  margin-bottom: 12px;
-  text-decoration: none;
-  color: var(--text);
-  box-shadow: var(--shadow);
-  transition: transform 0.15s, border-color 0.15s;
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border); border-radius: 18px;
+  padding: 20px; margin-bottom: 12px;
+  text-decoration: none; color: var(--text);
+  box-shadow: var(--shadow); transition: transform 0.15s, border-color 0.15s;
 }
 .card:active { transform: scale(0.985); border-color: var(--accent); }
-.title {
-  flex: 1;
-  font-size: 1.15rem;
-  font-weight: 600;
-  line-height: 1.45;
-  word-break: break-word;
-}
+.title { flex: 1; font-size: 1.15rem; font-weight: 600; line-height: 1.45; word-break: break-word; }
 .arrow { font-size: 1.7rem; color: var(--muted); flex-shrink: 0; }
 .empty { text-align: center; color: var(--muted); padding: 80px 0; }
 footer {
-  text-align: center;
-  margin-top: 50px;
-  padding: 24px 0;
-  border-top: 1px solid var(--border);
-  font-size: 0.88rem;
-  color: var(--muted);
-  line-height: 1.8;
+  text-align: center; margin-top: 50px; padding: 24px 0;
+  border-top: 1px solid var(--border); font-size: 0.88rem; color: var(--muted); line-height: 1.8;
 }
 .to-top {
-  position: fixed;
-  right: 18px;
-  bottom: calc(env(safe-area-inset-bottom) + 22px);
-  width: 52px; height: 52px;
-  border-radius: 50%;
+  position: fixed; right: 18px; bottom: calc(env(safe-area-inset-bottom) + 22px);
+  width: 52px; height: 52px; border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: white;
-  border: none;
-  font-size: 1.5rem;
-  font-weight: 700;
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
-  cursor: pointer;
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.25s;
-  z-index: 100;
+  color: white; border: none; font-size: 1.5rem; font-weight: 700;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4); cursor: pointer;
+  opacity: 0; transform: translateY(20px); transition: all 0.25s; z-index: 100;
 }
 .to-top.show { opacity: 1; transform: translateY(0); }
 .hidden { display: none !important; }
@@ -283,7 +196,7 @@ footer {
       <span class="dot"></span>
       <span>📡 <b>__SOURCES__</b> 个源</span>
       <span class="dot"></span>
-      <span>🕒 TIME</span>
+      <span>🕒 __TIME__</span>
     </div>
   </header>
   <div class="search-bar">
@@ -291,11 +204,10 @@ footer {
   </div>
   <div class="tabs" id="tabs"></div>
   <main id="content">
-BODY
+__BODY__
   </main>
   <footer>
     <p>🤖 Powered by GitHub Actions · 每天 8:00 自动更新</p>
-    <p>修改 <code>build.py</code> 中的 <code>FEEDS</code> 添加更多源</p>
   </footer>
 </div>
 <button class="to-top" id="toTop" aria-label="回到顶部">↑</button>
@@ -343,8 +255,7 @@ def build_html(articles):
     sections = []
     for source, items in by_source.items():
         cards = "\n".join(
-            f'      <a class="card" href="{html.escape(it["link"])}" '
-            f'target="_blank" rel="noopener">'
+            f'      <a class="card" href="{html.escape(it["link"])}" target="_blank" rel="noopener">'
             f'<span class="title">{html.escape(it["title"])}</span>'
             f'<span class="arrow">›</span></a>'
             for it in items
@@ -356,7 +267,7 @@ def build_html(articles):
             f'{cards}\n'
             f'    </section>'
         )
-    body = "\n".join(sections) if sections else '    <p class="empty">暂无内容 🌀</p>'
+    body = "\n".join(sections) if sections else '    <p class="empty">暂无内容</p>'
     return (HTML_TEMPLATE
             .replace("__TOTAL__", str(len(articles)))
             .replace("__SOURCES__", str(len(by_source)))
@@ -370,6 +281,6 @@ def main():
     out = os.path.join("public", "index.html")
     with open(out, "w", encoding="utf-8") as f:
         f.write(build_html(all_items))
-    print(f"\n✅ 生成 {out}（{len(all_items)} 条）")
-if name == "__main__":
+    print(f"\nDone: {out} ({len(all_items)} items)")
+if __name__ == "__main__":
     main()

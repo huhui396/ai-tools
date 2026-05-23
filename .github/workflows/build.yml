@@ -1,17 +1,21 @@
 name: AI Tools Daily
+
 on:
   schedule:
-    - cron: '0 0  *'   # 每天 UTC 0点（北京 8 点）更新
+    - cron: '0 0 * * *'
   push:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: "pages"
   cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -20,14 +24,20 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - run: pip install feedparser requests
+
       - run: python build.py
+
       - uses: actions/configure-pages@v5
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./public
+
       - id: deployment
         uses: actions/deploy-pages@v4
