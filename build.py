@@ -394,6 +394,9 @@ function shareNow() {
   }
 }
 </script>
+<!-- GoatCounter 访问统计 -->
+<script data-goatcounter="https://airadar.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>"""
 ABOUT_HTML = r"""<!DOCTYPE html>
