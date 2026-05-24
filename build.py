@@ -5,9 +5,47 @@ AI 工具情报站 - 每天自动聚合 AI 领域信息源
 import html
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import feedparser
 import requests
+
+SITE_URL = "https://huhui396.github.io/ai-tools/"
+LATEST_LIMIT = 40
+
+# 两个页面共用的设计变量与基础重置,集中维护,避免改主题色要改两处
+SHARED_CSS = r""":root {
+  --bg: #f5f7fb;
+  --bg-grad: radial-gradient(1200px 600px at 50% -200px, #c7d2fe 0%, transparent 60%),
+             radial-gradient(800px 400px at 100% 100px, #fbcfe8 0%, transparent 60%),
+             #f5f7fb;
+  --card: rgba(255, 255, 255, 0.72);
+  --text: #0f172a;
+  --text-2: #334155;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --accent-2: #7c3aed;
+  --border: rgba(15, 23, 42, 0.08);
+  --shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+  --blur: blur(20px) saturate(180%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220;
+    --bg-grad: radial-gradient(1200px 600px at 50% -200px, #3730a3 0%, transparent 60%),
+               radial-gradient(800px 400px at 100% 100px, #831843 0%, transparent 60%),
+               #0b1220;
+    --card: rgba(30, 41, 59, 0.6);
+    --text: #f8fafc;
+    --text-2: #cbd5e1;
+    --muted: #94a3b8;
+    --accent: #818cf8;
+    --accent-2: #f0abfc;
+    --border: rgba(255, 255, 255, 0.08);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }"""
 FEEDS = {
     "🔥 Product Hunt": "https://www.producthunt.com/feed?category=artificial-intelligence",
     "📰 The Decoder":   "https://the-decoder.com/feed/",
@@ -49,10 +87,12 @@ def parse_feed(name, url):
         # 解析发布时间
         pub_str = ""
         is_new = False
+        ts = 0.0
         pub_parsed = entry.get("published_parsed") or entry.get("updated_parsed")
         if pub_parsed:
             try:
                 pub_dt = datetime(*pub_parsed[:6], tzinfo=timezone.utc)
+                ts = pub_dt.timestamp()
                 delta = now - pub_dt
                 hours = delta.total_seconds() / 3600
                 if hours < 1:
@@ -74,6 +114,7 @@ def parse_feed(name, url):
             "summary": summary,
             "pub_str": pub_str,
             "is_new": is_new,
+            "ts": ts,
         })
     print(f"  ok: {len(items)}")
     return items
@@ -81,53 +122,27 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#eef2ff" media="(prefers-color-scheme: light)">
 <title>🤖 AI 工具情报站</title>
-<meta name="description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英双语,每天更新">
+<meta name="description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英文源,每天更新">
 <meta property="og:title" content="AI 工具情报站 - 每天 5 分钟跟上全球 AI 圈">
-<meta property="og:description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英双语,每天更新">
+<meta property="og:description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英文源,每天更新">
 <meta property="og:url" content="https://huhui396.github.io/ai-tools/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://huhui396.github.io/ai-tools/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AI 工具情报站">
 <meta name="twitter:description" content="每天 5 分钟,跟上全球 AI 圈">
+<meta name="twitter:image" content="https://huhui396.github.io/ai-tools/og.png">
+<link rel="canonical" href="https://huhui396.github.io/ai-tools/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🤖%3C/text%3E%3C/svg%3E">
 <style>
-:root {
-  --bg: #f5f7fb;
-  --bg-grad: radial-gradient(1200px 600px at 50% -200px, #c7d2fe 0%, transparent 60%),
-             radial-gradient(800px 400px at 100% 100px, #fbcfe8 0%, transparent 60%),
-             #f5f7fb;
-  --card: rgba(255, 255, 255, 0.72);
-  --text: #0f172a;
-  --text-2: #334155;
-  --muted: #64748b;
-  --accent: #2563eb;
-  --accent-2: #7c3aed;
-  --border: rgba(15, 23, 42, 0.08);
-  --shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
-  --blur: blur(20px) saturate(180%);
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1220;
-    --bg-grad: radial-gradient(1200px 600px at 50% -200px, #3730a3 0%, transparent 60%),
-               radial-gradient(800px 400px at 100% 100px, #831843 0%, transparent 60%),
-               #0b1220;
-    --card: rgba(30, 41, 59, 0.6);
-    --text: #f8fafc;
-    --text-2: #cbd5e1;
-    --muted: #94a3b8;
-    --accent: #818cf8;
-    --accent-2: #f0abfc;
-    --border: rgba(255, 255, 255, 0.08);
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  }
-}
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/*__SHARED_CSS__*/
 html { font-size: 18px; scroll-behavior: smooth; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
@@ -342,41 +357,68 @@ footer {
   <main id="content">
 __BODY__
   </main>
+  <p class="empty hidden" id="noResults">🔍 没有找到相关内容，换个关键词试试</p>
   <footer>
     <p>🤖 Powered by GitHub Actions · 每天 8:00 自动更新</p>
-    <p style="margin-top:6px">📡 12 个精选 AI 信息源 · 中英双语 · 开源免费</p>
+    <p style="margin-top:6px">📡 12 个精选中英文 AI 信息源 · 开源免费</p>
     <p style="margin-top:6px;font-size:0.8rem;">💡 觉得有用?把这个网址告诉一个朋友</p>
     <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:600;">👋 关于本站</a></p>
   </footer>
 </div>
 <button class="to-top" id="toTop" aria-label="回到顶部">↑</button>
 <script>
-const groups = document.querySelectorAll('.group');
-const sources = ['全部', ...Array.from(groups).map(g => g.dataset.source)];
+const allGroups = Array.from(document.querySelectorAll('.group'));
+const latestGroup = document.querySelector('.latest-group');
+const sourceGroups = allGroups.filter(g => !g.classList.contains('latest-group'));
+const search = document.getElementById('search');
+const noResults = document.getElementById('noResults');
 const tabsEl = document.getElementById('tabs');
-sources.forEach((s, i) => {
+const tabNames = ['全部', ...(latestGroup ? ['🆕 最新'] : []), ...sourceGroups.map(g => g.dataset.source)];
+let activeTab = '全部';
+
+function cardMatches(card, q) {
+  if (!q) return true;
+  const t = card.querySelector('.title').textContent.toLowerCase();
+  const s = card.querySelector('.summary');
+  return t.includes(q) || (s ? s.textContent.toLowerCase().includes(q) : false);
+}
+
+function applyFilters() {
+  const q = search.value.trim().toLowerCase();
+  let anyVisible = false;
+  allGroups.forEach(g => {
+    const isLatest = g.classList.contains('latest-group');
+    let inTab;
+    if (activeTab === '全部') inTab = !isLatest;
+    else if (activeTab === '🆕 最新') inTab = isLatest;
+    else inTab = !isLatest && g.dataset.source === activeTab;
+    if (!inTab) { g.classList.add('hidden'); return; }
+    let visible = 0;
+    g.querySelectorAll('.card').forEach(card => {
+      const show = cardMatches(card, q);
+      card.classList.toggle('hidden', !show);
+      if (show) visible++;
+    });
+    g.classList.toggle('hidden', visible === 0);
+    if (visible > 0) anyVisible = true;
+  });
+  noResults.classList.toggle('hidden', anyVisible);
+}
+
+tabNames.forEach((s, i) => {
   const b = document.createElement('button');
   b.className = 'tab' + (i === 0 ? ' active' : '');
   b.textContent = s;
   b.onclick = () => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     b.classList.add('active');
-    groups.forEach(g => g.classList.toggle('hidden', i !== 0 && g.dataset.source !== s));
+    activeTab = s;
+    applyFilters();
   };
   tabsEl.appendChild(b);
 });
-const search = document.getElementById('search');
-search.addEventListener('input', () => {
-  const q = search.value.trim().toLowerCase();
-  document.querySelectorAll('.card').forEach(card => {
-    const t = card.querySelector('.title').textContent.toLowerCase();
-    card.classList.toggle('hidden', q && !t.includes(q));
-  });
-  groups.forEach(g => {
-    const visible = g.querySelectorAll('.card:not(.hidden)').length;
-    g.classList.toggle('hidden', visible === 0);
-  });
-});
+search.addEventListener('input', applyFilters);
+applyFilters();
 const toTop = document.getElementById('toTop');
 window.addEventListener('scroll', () => {
   toTop.classList.toggle('show', window.scrollY > 400);
@@ -403,44 +445,13 @@ ABOUT_HTML = r"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#eef2ff" media="(prefers-color-scheme: light)">
 <title>关于 - AI 工具情报站</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🤖%3C/text%3E%3C/svg%3E">
 <style>
-:root {
-  --bg: #f5f7fb;
-  --bg-grad: radial-gradient(1200px 600px at 50% -200px, #c7d2fe 0%, transparent 60%),
-             radial-gradient(800px 400px at 100% 100px, #fbcfe8 0%, transparent 60%),
-             #f5f7fb;
-  --card: rgba(255, 255, 255, 0.72);
-  --text: #0f172a;
-  --text-2: #334155;
-  --muted: #64748b;
-  --accent: #2563eb;
-  --accent-2: #7c3aed;
-  --border: rgba(15, 23, 42, 0.08);
-  --shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
-  --blur: blur(20px) saturate(180%);
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1220;
-    --bg-grad: radial-gradient(1200px 600px at 50% -200px, #3730a3 0%, transparent 60%),
-               radial-gradient(800px 400px at 100% 100px, #831843 0%, transparent 60%),
-               #0b1220;
-    --card: rgba(30, 41, 59, 0.6);
-    --text: #f8fafc;
-    --text-2: #cbd5e1;
-    --muted: #94a3b8;
-    --accent: #818cf8;
-    --accent-2: #f0abfc;
-    --border: rgba(255, 255, 255, 0.08);
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  }
-}
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+/*__SHARED_CSS__*/
 html { font-size: 18px; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
@@ -555,7 +566,7 @@ header h1 {
     我是一个对 AI 行业感兴趣的独立开发者,
     每天看不完 AI 新闻,所以做了这个工具,
     把 12 个最好的 AI 信息源聚合到一起,
-    每天用 AI 自动翻译成中文。
+    每天自动抓取、去重、按时间排好,一页看完。
   </div>
 
   <section class="section">
@@ -584,7 +595,7 @@ header h1 {
   <section class="section">
     <h2>🛠 怎么实现的</h2>
     <p>GitHub Actions 每天 8:00 自动跑<br>
-    + DeepSeek API 翻译生成中文<br>
+    + Python 并行抓取 12 个 RSS 源(自动去重)<br>
     + GitHub Pages 静态托管</p>
   </section>
 
@@ -635,6 +646,18 @@ def build_html(articles):
         )
 
     sections = []
+    # 🆕 最新:跨所有源按发布时间倒序,默认隐藏,由"最新"标签切出
+    recent = sorted((a for a in articles if a.get("ts")),
+                    key=lambda a: a["ts"], reverse=True)[:LATEST_LIMIT]
+    if recent:
+        cards = "\n".join(render_card(it) for it in recent)
+        sections.append(
+            f'    <section class="group latest-group hidden" data-source="🆕 最新">\n'
+            f'      <h2 class="group-title">🆕 最新'
+            f' <span class="count">{len(recent)}</span></h2>\n'
+            f'{cards}\n'
+            f'    </section>'
+        )
     for source, items in by_source.items():
         cards = "\n".join(render_card(it) for it in items)
         sections.append(
@@ -646,15 +669,93 @@ def build_html(articles):
         )
     body = "\n".join(sections) if sections else '    <p class="empty">暂无内容</p>'
     return (HTML_TEMPLATE
+            .replace("/*__SHARED_CSS__*/", SHARED_CSS)
             .replace("__TOTAL__", str(len(articles)))
             .replace("__SOURCES__", str(len(by_source)))
             .replace("__TIME__", stamp)
             .replace("__NEXT_UPDATE__", next_update_str)
             .replace("__BODY__", body))
+def dedup(items):
+    """按链接去重(跨源),保留首次出现的顺序。"""
+    seen = set()
+    out = []
+    for it in items:
+        link = (it.get("link") or "").split("?")[0].rstrip("/").lower()
+        if link and link != "#":
+            if link in seen:
+                continue
+            seen.add(link)
+        out.append(it)
+    return out
+
+
+def write_site_files():
+    """生成 sitemap.xml 与 robots.txt,利于搜索引擎收录。"""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    sitemap = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f'  <url><loc>{SITE_URL}</loc><lastmod>{today}</lastmod>'
+        '<changefreq>daily</changefreq><priority>1.0</priority></url>\n'
+        f'  <url><loc>{SITE_URL}about.html</loc>'
+        '<changefreq>monthly</changefreq><priority>0.5</priority></url>\n'
+        '</urlset>\n'
+    )
+    robots = f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}sitemap.xml\n"
+    with open(os.path.join("public", "sitemap.xml"), "w", encoding="utf-8") as f:
+        f.write(sitemap)
+    with open(os.path.join("public", "robots.txt"), "w", encoding="utf-8") as f:
+        f.write(robots)
+
+
+def generate_og_image(path):
+    """生成 1200x630 社交分享图(拉丁品牌文案)。失败不影响站点构建。"""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception as e:
+        print(f"  og skip (Pillow unavailable): {e}")
+        return
+    try:
+        W, H = 1200, 630
+        top, bot = (37, 99, 235), (124, 58, 237)
+        img = Image.new("RGB", (W, H))
+        px = img.load()
+        for y in range(H):
+            r = top[0] + (bot[0] - top[0]) * y // H
+            g = top[1] + (bot[1] - top[1]) * y // H
+            b = top[2] + (bot[2] - top[2]) * y // H
+            for x in range(W):
+                px[x, y] = (r, g, b)
+        draw = ImageDraw.Draw(img)
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+
+        def load(size):
+            try:
+                return ImageFont.truetype(font_path, size)
+            except Exception:
+                return ImageFont.load_default()
+
+        def centered(text, font, y, fill):
+            box = draw.textbbox((0, 0), text, font=font)
+            draw.text(((W - (box[2] - box[0])) / 2, y), text, font=font, fill=fill)
+
+        centered("AI RADAR", load(150), 150, (255, 255, 255))
+        centered("Daily AI intelligence, in one place",
+                 load(46), 340, (235, 238, 252))
+        centered("ProductHunt  HackerNews  OpenAI  Anthropic  arXiv",
+                 load(30), 430, (210, 215, 245))
+        centered("huhui396.github.io/ai-tools", load(28), 540, (200, 205, 240))
+        img.save(path, "PNG")
+        print(f"Done: {path}")
+    except Exception as e:
+        print(f"  og fail: {e}")
+
+
 def main():
-    all_items = []
-    for name, url in FEEDS.items():
-        all_items.extend(parse_feed(name, url))
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        results = list(ex.map(lambda kv: parse_feed(*kv), FEEDS.items()))
+    all_items = dedup([it for items in results for it in items])
+
     os.makedirs("public", exist_ok=True)
     out = os.path.join("public", "index.html")
     with open(out, "w", encoding="utf-8") as f:
@@ -662,7 +763,9 @@ def main():
     # 生成 about 页面
     about_out = os.path.join("public", "about.html")
     with open(about_out, "w", encoding="utf-8") as f:
-        f.write(ABOUT_HTML)
+        f.write(ABOUT_HTML.replace("/*__SHARED_CSS__*/", SHARED_CSS))
+    write_site_files()
+    generate_og_image(os.path.join("public", "og.png"))
     print(f"Done: {about_out}")
     print(f"\nDone: {out} ({len(all_items)} items)")
 if __name__ == "__main__":
