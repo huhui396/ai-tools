@@ -38,6 +38,7 @@ SHARED_CSS = r""":root {
   --r-pill: 999px;
   --blur: blur(14px) saturate(160%);
   --ease: cubic-bezier(.16, 1, .3, 1);
+  --ic-search: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-3.6-3.6'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -56,18 +57,18 @@ SHARED_CSS = r""":root {
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }"""
 FEEDS = {
-    "🔥 Product Hunt": "https://www.producthunt.com/feed?category=artificial-intelligence",
-    "📰 The Decoder":   "https://the-decoder.com/feed/",
-    "📰 VentureBeat AI":"https://venturebeat.com/category/ai/feed/",
-    "📰 MIT Tech AI":   "https://www.technologyreview.com/topic/artificial-intelligence/feed",
-    "🔬 ArXiv AI":      "http://export.arxiv.org/rss/cs.AI",
-    "💬 Hacker News":   "https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT&count=15",
-    "🛠 GitHub Trending":"https://rsshub.app/github/trending/daily/Python",
-    "📝 OpenAI Blog":   "https://openai.com/blog/rss.xml",
-    "📝 Anthropic":     "https://www.anthropic.com/news/rss.xml",
-    "📝 Hugging Face":  "https://huggingface.co/blog/feed.xml",
-    "🇨🇳 机器之心":      "https://www.jiqizhixin.com/rss",
-    "🇨🇳 量子位":        "https://www.qbitai.com/feed",
+    "Product Hunt":    "https://www.producthunt.com/feed?category=artificial-intelligence",
+    "The Decoder":     "https://the-decoder.com/feed/",
+    "VentureBeat AI":  "https://venturebeat.com/category/ai/feed/",
+    "MIT Tech Review": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
+    "ArXiv AI":        "http://export.arxiv.org/rss/cs.AI",
+    "Hacker News":     "https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT&count=15",
+    "GitHub Trending": "https://rsshub.app/github/trending/daily/Python",
+    "OpenAI Blog":     "https://openai.com/blog/rss.xml",
+    "Anthropic":       "https://www.anthropic.com/news/rss.xml",
+    "Hugging Face":    "https://huggingface.co/blog/feed.xml",
+    "机器之心":         "https://www.jiqizhixin.com/rss",
+    "量子位":           "https://www.qbitai.com/feed",
 }
 PER_FEED_LIMIT = 8
 TIMEOUT = 15
@@ -112,7 +113,10 @@ def parse_feed(name, url):
     now = datetime.now(timezone.utc)
     for entry in parsed.entries[:PER_FEED_LIMIT]:
         summary = entry.get("summary") or entry.get("description") or ""
-        summary = html.unescape(re.sub(r"<[^>]+>", "", summary)).strip()[:120]
+        summary = html.unescape(re.sub(r"<[^>]+>", "", summary))
+        summary = re.sub(r"\s+", " ", summary)
+        summary = re.sub(r"\s*\b(Discussion|Comments?)\b\s*[|·–—-].*$", "", summary, flags=re.I)
+        summary = summary.strip()[:120]
         # 解析发布时间
         pub_str = ""
         is_new = False
@@ -191,7 +195,7 @@ header { text-align: center; padding: 28px 12px 12px; }
 header h1 {
   font-size: 1.6rem;
   font-weight: 700;
-  letter-spacing: -0.022em;
+  letter-spacing: -0.01em;
   color: var(--text);
 }
 header .subtitle { font-size: 1rem; color: var(--muted); margin-top: 10px; font-weight: 450; }
@@ -199,59 +203,59 @@ header .subtitle { font-size: 1rem; color: var(--muted); margin-top: 10px; font-
   display: inline-flex; align-items: center; gap: 10px; margin-top: 18px;
   font-size: 0.8125rem; color: var(--muted);
   background: var(--card);
-  padding: 7px 15px; border-radius: var(--r-pill);
+  padding: 7px 16px; border-radius: var(--r-pill);
   border: 1px solid var(--border); box-shadow: var(--shadow);
 }
-.stats b { color: var(--text-2); font-weight: 600; font-size: 0.8125rem; }
-.stats .dot { width: 3px; height: 3px; background: var(--muted); border-radius: 50%; opacity: 0.6; }
-.next-update {
-  margin-top: 10px;
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-weight: 450;
-}
-.header-actions { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+.stats b { color: var(--text); font-weight: 600; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.stats .dot { width: 3px; height: 3px; background: var(--muted); border-radius: 50%; opacity: 0.55; }
+.header-actions { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
 .action-btn {
-  font-size: 0.8125rem; font-weight: 500; color: #fff;
-  background: var(--accent); border: 1px solid transparent;
-  padding: 9px 18px; border-radius: var(--r-pill); cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 6px 16px -7px color-mix(in srgb, var(--accent) 55%, transparent);
-  transition: transform .18s var(--ease), background .18s var(--ease), box-shadow .18s var(--ease);
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.8125rem; font-weight: 500; color: var(--text-2);
+  background: transparent; border: 1px solid var(--border-strong);
+  padding: 7px 15px; border-radius: var(--r-pill); cursor: pointer;
+  transition: background .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease);
 }
+.action-btn svg { width: 15px; height: 15px; }
 @media (hover: hover) {
-  .action-btn:hover {
-    background: color-mix(in srgb, var(--accent) 90%, #000);
-    box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 9px 22px -7px color-mix(in srgb, var(--accent) 60%, transparent);
-  }
+  .action-btn:hover { background: var(--card-hover); color: var(--text); border-color: var(--muted); }
 }
 .action-btn:active { transform: translateY(1px); }
-.search-bar { position: sticky; top: 8px; z-index: 50; margin: 20px 0 18px; }
+.filter-bar {
+  position: sticky; top: 0; z-index: 50;
+  margin: 18px -18px 8px; padding: 12px 18px 0;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+}
+.search-bar { position: relative; }
 .search-bar input {
   width: 100%; font-size: 0.9375rem; padding: 13px 18px 13px 46px;
   border-radius: var(--r); border: 1px solid var(--border);
-  background: var(--card); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  background: var(--card);
   color: var(--text); box-shadow: var(--shadow); outline: none; font-weight: 450;
   transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
 }
 .search-bar input::placeholder { color: var(--muted); }
 .search-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 .search-bar::before {
-  content: "🔍"; position: absolute; left: 17px; top: 50%;
-  transform: translateY(-50%); font-size: 0.95rem; opacity: 0.5; pointer-events: none;
+  content: ""; position: absolute; left: 16px; top: 50%;
+  transform: translateY(-50%); width: 17px; height: 17px; pointer-events: none;
+  background: var(--muted);
+  -webkit-mask: var(--ic-search) center / contain no-repeat;
+  mask: var(--ic-search) center / contain no-repeat;
 }
 .tabs {
   display: flex;
   gap: 7px;
   overflow-x: auto;
-  padding: 2px 2px 12px;
-  margin-bottom: 8px;
+  padding: 0 2px 12px;
   scrollbar-width: none;
   mask-image: linear-gradient(to right, black 90%, transparent);
   -webkit-mask-image: linear-gradient(to right, black 90%, transparent);
 }
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
-  flex-shrink: 0; padding: 7px 14px; border-radius: var(--r-pill); border: 1px solid var(--border);
+  flex-shrink: 0; padding: 8px 15px; border-radius: var(--r-pill); border: 1px solid var(--border);
   background: var(--card);
   color: var(--text-2); font-size: 0.8125rem; font-weight: 500; cursor: pointer; white-space: nowrap;
   transition: background .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease);
@@ -365,30 +369,33 @@ footer {
     <h1>🛰️ AI 工具情报站</h1>
     <p class="subtitle">每天 5 分钟，跟上全球 AI 圈</p>
     <div class="stats">
-      <span>📰 <b>__TOTAL__</b> 条</span>
+      <span><b>__TOTAL__</b> 条</span>
       <span class="dot"></span>
-      <span>📡 <b>__SOURCES__</b> 个源</span>
+      <span><b>__SOURCES__</b> 个源</span>
       <span class="dot"></span>
-      <span>🕒 __TIME__</span>
+      <span>__TIME__ 更新</span>
     </div>
-    <div class="next-update">⏰ 下次更新 __NEXT_UPDATE__</div>
     <div class="header-actions">
-      <button class="action-btn" onclick="shareNow()">🔗 分享给朋友</button>
+      <button class="action-btn" onclick="shareNow()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+        分享
+      </button>
     </div>
   </header>
-  <div class="search-bar">
-    <input id="search" type="search" placeholder="搜索 AI 工具、论文、新闻…" autocomplete="off">
+  <div class="filter-bar">
+    <div class="search-bar">
+      <input id="search" type="search" placeholder="搜索 AI 工具、论文、新闻…" autocomplete="off">
+    </div>
+    <div class="tabs" id="tabs"></div>
   </div>
-  <div class="tabs" id="tabs"></div>
   <main id="content">
 __BODY__
   </main>
-  <p class="empty hidden" id="noResults">🔍 没有找到相关内容，换个关键词试试</p>
+  <p class="empty hidden" id="noResults">没有找到相关内容，换个关键词试试</p>
   <footer>
-    <p>🤖 Powered by GitHub Actions · 每天 8:00 自动更新</p>
-    <p style="margin-top:6px">📡 12 个精选中英文 AI 信息源 · 开源免费</p>
-    <p style="margin-top:6px;font-size:0.8rem;">💡 觉得有用?把这个网址告诉一个朋友</p>
-    <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:600;">👋 关于本站</a></p>
+    <p>每天 08:00 自动更新 · Powered by GitHub Actions</p>
+    <p style="margin-top:6px">12 个精选中英文 AI 信息源 · 开源免费</p>
+    <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:500;">关于本站 →</a></p>
   </footer>
 </div>
 <button class="to-top" id="toTop" aria-label="回到顶部">↑</button>
@@ -399,7 +406,7 @@ const sourceGroups = allGroups.filter(g => !g.classList.contains('latest-group')
 const search = document.getElementById('search');
 const noResults = document.getElementById('noResults');
 const tabsEl = document.getElementById('tabs');
-const tabNames = ['全部', ...(latestGroup ? ['🆕 最新'] : []), ...sourceGroups.map(g => g.dataset.source)];
+const tabNames = ['全部', ...(latestGroup ? ['最新'] : []), ...sourceGroups.map(g => g.dataset.source)];
 let activeTab = '全部';
 
 function cardMatches(card, q) {
@@ -416,7 +423,7 @@ function applyFilters() {
     const isLatest = g.classList.contains('latest-group');
     let inTab;
     if (activeTab === '全部') inTab = !isLatest;
-    else if (activeTab === '🆕 最新') inTab = isLatest;
+    else if (activeTab === '最新') inTab = isLatest;
     else inTab = !isLatest && g.dataset.source === activeTab;
     if (!inTab) { g.classList.add('hidden'); return; }
     let visible = 0;
@@ -595,7 +602,7 @@ header h1 {
   </div>
 
   <section class="section">
-    <h2>📡 信息源</h2>
+    <h2>信息源</h2>
     <ul>
       <li>• Anthropic / OpenAI / Hugging Face 官方博客</li>
       <li>• Product Hunt AI 新品发布</li>
@@ -607,7 +614,7 @@ header h1 {
   </section>
 
   <section class="section">
-    <h2>✅ 我的承诺</h2>
+    <h2>我的承诺</h2>
     <ul class="promise">
       <li>✓ 完全免费</li>
       <li>✓ 无广告</li>
@@ -618,14 +625,14 @@ header h1 {
   </section>
 
   <section class="section">
-    <h2>🛠 怎么实现的</h2>
+    <h2>怎么实现的</h2>
     <p>GitHub Actions 每天 8:00 自动跑<br>
     + Python 并行抓取 12 个 RSS 源(自动去重)<br>
     + GitHub Pages 静态托管</p>
   </section>
 
   <section class="section">
-    <h2>📮 联系我</h2>
+    <h2>联系我</h2>
     <p><strong>GitHub:</strong> <a href="https://github.com/huhui396/ai-tools" target="_blank">github.com/huhui396/ai-tools</a></p>
     <p><strong>Reddit:</strong> <a href="https://reddit.com/user/AIRadarDaily" target="_blank">u/AIRadarDaily</a></p>
   </section>
@@ -674,14 +681,14 @@ def build_html(articles):
         )
 
     sections = []
-    # 🆕 最新:跨所有源按发布时间倒序,默认隐藏,由"最新"标签切出
+    # 最新:跨所有源按发布时间倒序,默认隐藏,由"最新"标签切出
     recent = sorted((a for a in articles if a.get("ts")),
                     key=lambda a: a["ts"], reverse=True)[:LATEST_LIMIT]
     if recent:
         cards = "\n".join(render_card(it) for it in recent)
         sections.append(
-            f'    <section class="group latest-group hidden" data-source="🆕 最新">\n'
-            f'      <h2 class="group-title">🆕 最新'
+            f'    <section class="group latest-group hidden" data-source="最新">\n'
+            f'      <h2 class="group-title">最新'
             f' <span class="count">{len(recent)}</span></h2>\n'
             f'{cards}\n'
             f'    </section>'
