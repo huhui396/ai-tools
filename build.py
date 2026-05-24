@@ -154,7 +154,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0b" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
-<title>🤖 AI 工具情报站</title>
+<title>🛰️ AI 工具情报站</title>
 <meta name="description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英文源,每天更新">
 <meta property="og:title" content="AI 工具情报站 - 每天 5 分钟跟上全球 AI 圈">
 <meta property="og:description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英文源,每天更新">
@@ -169,7 +169,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta name="twitter:description" content="每天 5 分钟,跟上全球 AI 圈">
 <meta name="twitter:image" content="https://huhui396.github.io/ai-tools/og.png">
 <link rel="canonical" href="https://huhui396.github.io/ai-tools/">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🤖%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🛰️%3C/text%3E%3C/svg%3E">
 <style>
 /*__SHARED_CSS__*/
 html { font-size: 16px; scroll-behavior: smooth; }
@@ -362,7 +362,7 @@ footer {
 <body>
 <div class="wrapper">
   <header>
-    <h1>🤖 AI 工具情报站</h1>
+    <h1>🛰️ AI 工具情报站</h1>
     <p class="subtitle">每天 5 分钟，跟上全球 AI 圈</p>
     <div class="stats">
       <span>📰 <b>__TOTAL__</b> 条</span>
@@ -475,7 +475,7 @@ ABOUT_HTML = r"""<!DOCTYPE html>
 <meta name="theme-color" content="#0a0a0b" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
 <title>关于 - AI 工具情报站</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🤖%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🛰️%3C/text%3E%3C/svg%3E">
 <style>
 /*__SHARED_CSS__*/
 html { font-size: 16px; }
