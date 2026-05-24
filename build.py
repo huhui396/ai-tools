@@ -61,6 +61,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#eef2ff" media="(prefers-color-scheme: light)">
 <title>🤖 AI 工具情报站</title>
+<meta name="description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英双语,每天更新">
+<meta property="og:title" content="AI 工具情报站 - 每天 5 分钟跟上全球 AI 圈">
+<meta property="og:description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英双语,每天更新">
+<meta property="og:url" content="https://huhui396.github.io/ai-tools/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI 工具情报站">
+<meta name="twitter:description" content="每天 5 分钟,跟上全球 AI 圈">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🤖%3C/text%3E%3C/svg%3E">
 <style>
 :root {
@@ -108,7 +117,7 @@ body {
   min-height: 100vh;
 }
 .wrapper { max-width: 760px; margin: 0 auto; }
-header { text-align: center; padding: 28px 12px 24px; }
+header { text-align: center; padding: 20px 12px 16px; }
 header h1 {
   font-size: 1.7rem;
   font-weight: 900;
@@ -120,7 +129,7 @@ header h1 {
 }
 header .subtitle { font-size: 1.05rem; color: var(--muted); margin-top: 12px; font-weight: 500; }
 .stats {
-  display: inline-flex; align-items: center; gap: 14px; margin-top: 18px;
+  display: inline-flex; align-items: center; gap: 14px; margin-top: 14px;
   font-size: 0.9rem; color: var(--text-2);
   background: var(--card); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
   padding: 10px 20px; border-radius: 999px;
@@ -128,7 +137,7 @@ header .subtitle { font-size: 1.05rem; color: var(--muted); margin-top: 12px; fo
 }
 .stats b { color: var(--accent); font-weight: 800; font-size: 1.05rem; }
 .stats .dot { width: 4px; height: 4px; background: var(--muted); border-radius: 50%; }
-.search-bar { position: sticky; top: 8px; z-index: 50; margin: 20px 0 24px; }
+.search-bar { position: sticky; top: 8px; z-index: 50; margin: 16px 0 16px; }
 .search-bar input {
   width: 100%; font-size: 1.05rem; padding: 16px 20px 16px 52px;
   border-radius: 16px; border: 1px solid var(--border);
@@ -140,7 +149,16 @@ header .subtitle { font-size: 1.05rem; color: var(--muted); margin-top: 12px; fo
   content: "🔍"; position: absolute; left: 20px; top: 50%;
   transform: translateY(-50%); font-size: 1.1rem; opacity: 0.6; pointer-events: none;
 }
-.tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 12px; margin-bottom: 8px; scrollbar-width: none; }
+.tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 12px;
+  margin-bottom: 8px;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, black 88%, transparent);
+  -webkit-mask-image: linear-gradient(to right, black 88%, transparent);
+}
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
   flex-shrink: 0; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border);
@@ -174,7 +192,8 @@ header .subtitle { font-size: 1.05rem; color: var(--muted); margin-top: 12px; fo
 .title { font-size: 1.15rem; font-weight: 600; line-height: 1.45; word-break: break-word; }
 .card-body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .summary { font-size: 0.92rem; color: var(--muted); line-height: 1.45; word-break: break-word; }
-.arrow { font-size: 1.7rem; color: var(--muted); flex-shrink: 0; }
+.arrow { font-size: 1.7rem; color: var(--accent); flex-shrink: 0; opacity: 0.6; transition: opacity 0.15s; }
+.card:active .arrow { opacity: 1; }
 .empty { text-align: center; color: var(--muted); padding: 80px 0; }
 footer {
   text-align: center; margin-top: 50px; padding: 24px 0;
@@ -189,6 +208,24 @@ footer {
   opacity: 0; transform: translateY(20px); transition: all 0.25s; z-index: 100;
 }
 .to-top.show { opacity: 1; transform: translateY(0); }
+.badges {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 999px;
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+}
 .hidden { display: none !important; }
 </style>
 </head>
@@ -197,6 +234,11 @@ footer {
   <header>
     <h1>🤖 AI 工具情报站</h1>
     <p class="subtitle">每天 5 分钟，跟上全球 AI 圈</p>
+    <div class="badges">
+      <span class="badge">🆓 免费</span>
+      <span class="badge">🚫 无广告</span>
+      <span class="badge">🔄 24h 自动更新</span>
+    </div>
     <div class="stats">
       <span>📰 <b>__TOTAL__</b> 条</span>
       <span class="dot"></span>
@@ -214,6 +256,8 @@ __BODY__
   </main>
   <footer>
     <p>🤖 Powered by GitHub Actions · 每天 8:00 自动更新</p>
+    <p style="margin-top:6px">📡 12 个精选 AI 信息源 · 中英双语 · 开源免费</p>
+    <p style="margin-top:6px;font-size:0.8rem;">💡 觉得有用?把这个网址告诉一个朋友</p>
   </footer>
 </div>
 <button class="to-top" id="toTop" aria-label="回到顶部">↑</button>
