@@ -3,6 +3,7 @@
 AI 工具情报站 - 每天自动聚合 AI 领域信息源
 """
 import html
+import json
 import os
 import re
 import sys
@@ -173,6 +174,12 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta name="twitter:description" content="每天 5 分钟,跟上全球 AI 圈">
 <meta name="twitter:image" content="https://huhui396.github.io/ai-tools/og.png">
 <link rel="canonical" href="https://huhui396.github.io/ai-tools/">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AI 情报站">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🛰️%3C/text%3E%3C/svg%3E">
 <style>
 /*__SHARED_CSS__*/
@@ -472,6 +479,11 @@ function shareNow() {
 <!-- GoatCounter 访问统计 -->
 <script data-goatcounter="https://airadar.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
 </body>
 </html>"""
 ABOUT_HTML = r"""<!DOCTYPE html>
@@ -786,6 +798,84 @@ def generate_og_image(path):
         print(f"  og fail: {e}")
 
 
+def generate_icons():
+    """生成 PWA 应用图标(纯色品牌底 + 白色 AI 字标)。失败不影响构建。"""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception as e:
+        print(f"  icons skip (Pillow unavailable): {e}")
+        return
+    try:
+        bg, fg = (79, 70, 229), (255, 255, 255)  # #4f46e5
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        for size, name in [(192, "icon-192.png"), (512, "icon-512.png"),
+                           (180, "apple-touch-icon.png")]:
+            img = Image.new("RGB", (size, size), bg)
+            d = ImageDraw.Draw(img)
+            try:
+                font = ImageFont.truetype(font_path, int(size * 0.4))
+            except Exception:
+                font = ImageFont.load_default()
+            box = d.textbbox((0, 0), "AI", font=font)
+            d.text(((size - (box[2] - box[0])) / 2 - box[0],
+                    (size - (box[3] - box[1])) / 2 - box[1]),
+                   "AI", font=font, fill=fg)
+            img.save(os.path.join("public", name), "PNG")
+        print("Done: app icons")
+    except Exception as e:
+        print(f"  icons fail: {e}")
+
+
+def write_pwa():
+    """生成 manifest.json 与 service worker,使站点可安装、可离线。"""
+    manifest = {
+        "name": "AI 工具情报站",
+        "short_name": "AI 情报站",
+        "description": "每天自动聚合全球 AI 信息源,5 分钟跟上 AI 圈",
+        "start_url": "./",
+        "scope": "./",
+        "display": "standalone",
+        "background_color": "#fafafa",
+        "theme_color": "#fafafa",
+        "lang": "zh-CN",
+        "icons": [
+            {"src": "icon-192.png", "sizes": "192x192", "type": "image/png",
+             "purpose": "any maskable"},
+            {"src": "icon-512.png", "sizes": "512x512", "type": "image/png",
+             "purpose": "any maskable"},
+        ],
+    }
+    with open(os.path.join("public", "manifest.json"), "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+
+    # network-first:在线总是拿最新,离线回退到缓存
+    sw = """const CACHE = 'airadar-v1';
+const CORE = ['./', './index.html', './about.html', './og.png', './manifest.json',
+              './icon-192.png', './icon-512.png'];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys()
+    .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  e.respondWith(
+    fetch(req).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(req, copy));
+      return res;
+    }).catch(() => caches.match(req).then(m => m || caches.match('./index.html')))
+  );
+});
+"""
+    with open(os.path.join("public", "sw.js"), "w", encoding="utf-8") as f:
+        f.write(sw)
+
+
 def main():
     with ThreadPoolExecutor(max_workers=8) as ex:
         results = list(ex.map(lambda kv: parse_feed(*kv), FEEDS.items()))
@@ -806,6 +896,8 @@ def main():
         f.write(ABOUT_HTML.replace("/*__SHARED_CSS__*/", SHARED_CSS))
     write_site_files()
     generate_og_image(os.path.join("public", "og.png"))
+    generate_icons()
+    write_pwa()
     print(f"Done: {about_out}")
     print(f"\nDone: {out} ({len(all_items)} items)")
 if __name__ == "__main__":
