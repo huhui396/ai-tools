@@ -346,6 +346,7 @@ __BODY__
     <p>🤖 Powered by GitHub Actions · 每天 8:00 自动更新</p>
     <p style="margin-top:6px">📡 12 个精选 AI 信息源 · 中英双语 · 开源免费</p>
     <p style="margin-top:6px;font-size:0.8rem;">💡 觉得有用?把这个网址告诉一个朋友</p>
+    <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:600;">👋 关于本站</a></p>
   </footer>
 </div>
 <button class="to-top" id="toTop" aria-label="回到顶部">↑</button>
@@ -393,6 +394,209 @@ function shareNow() {
   }
 }
 </script>
+</body>
+</html>"""
+ABOUT_HTML = r"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#eef2ff" media="(prefers-color-scheme: light)">
+<title>关于 - AI 工具情报站</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🤖%3C/text%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f5f7fb;
+  --bg-grad: radial-gradient(1200px 600px at 50% -200px, #c7d2fe 0%, transparent 60%),
+             radial-gradient(800px 400px at 100% 100px, #fbcfe8 0%, transparent 60%),
+             #f5f7fb;
+  --card: rgba(255, 255, 255, 0.72);
+  --text: #0f172a;
+  --text-2: #334155;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --accent-2: #7c3aed;
+  --border: rgba(15, 23, 42, 0.08);
+  --shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
+  --blur: blur(20px) saturate(180%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220;
+    --bg-grad: radial-gradient(1200px 600px at 50% -200px, #3730a3 0%, transparent 60%),
+               radial-gradient(800px 400px at 100% 100px, #831843 0%, transparent 60%),
+               #0b1220;
+    --card: rgba(30, 41, 59, 0.6);
+    --text: #f8fafc;
+    --text-2: #cbd5e1;
+    --muted: #94a3b8;
+    --accent: #818cf8;
+    --accent-2: #f0abfc;
+    --border: rgba(255, 255, 255, 0.08);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { font-size: 18px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  background-image: var(--bg-grad);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.7;
+  padding: max(env(safe-area-inset-top), 16px) 20px calc(env(safe-area-inset-bottom) + 60px);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+.wrapper { max-width: 680px; margin: 0 auto; }
+header { text-align: center; padding: 20px 0 28px; }
+header h1 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.intro {
+  background: var(--card);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px 24px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow);
+  font-size: 1rem;
+  color: var(--text-2);
+}
+.intro strong { color: var(--text); }
+.section {
+  background: var(--card);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow);
+}
+.section h2 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section h2::before {
+  content: "";
+  width: 4px;
+  height: 18px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  border-radius: 4px;
+}
+.section ul { list-style: none; padding: 0; }
+.section li {
+  font-size: 0.95rem;
+  color: var(--text-2);
+  padding: 5px 0;
+  line-height: 1.6;
+}
+.section p {
+  font-size: 0.95rem;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+.section a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.promise li {
+  font-weight: 600;
+  color: var(--text);
+}
+.back {
+  display: inline-block;
+  margin-top: 24px;
+  font-size: 1rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+  padding: 12px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+}
+.center { text-align: center; }
+.footer-quote {
+  text-align: center;
+  margin-top: 28px;
+  padding: 20px;
+  font-style: italic;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <header>
+    <h1>👋 关于 AI 工具情报站</h1>
+  </header>
+
+  <div class="intro">
+    Hi,我是 <strong>AIRadar 🛰</strong><br><br>
+    我是一个对 AI 行业感兴趣的独立开发者,
+    每天看不完 AI 新闻,所以做了这个工具,
+    把 12 个最好的 AI 信息源聚合到一起,
+    每天用 AI 自动翻译成中文。
+  </div>
+
+  <section class="section">
+    <h2>📡 信息源</h2>
+    <ul>
+      <li>• Anthropic / OpenAI / Hugging Face 官方博客</li>
+      <li>• Product Hunt AI 新品发布</li>
+      <li>• The Decoder / VentureBeat / MIT Tech Review</li>
+      <li>• ArXiv AI 最新论文</li>
+      <li>• Hacker News (AI 相关)</li>
+      <li>• 机器之心 / 量子位 (中文)</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>✅ 我的承诺</h2>
+    <ul class="promise">
+      <li>✓ 完全免费</li>
+      <li>✓ 无广告</li>
+      <li>✓ 不追踪用户</li>
+      <li>✓ 不收集邮箱</li>
+      <li>✓ 开源(代码在 GitHub)</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>🛠 怎么实现的</h2>
+    <p>GitHub Actions 每天 8:00 自动跑<br>
+    + DeepSeek API 翻译生成中文<br>
+    + GitHub Pages 静态托管</p>
+  </section>
+
+  <section class="section">
+    <h2>📮 联系我</h2>
+    <p><strong>GitHub:</strong> <a href="https://github.com/huhui396/ai-tools" target="_blank">github.com/huhui396/ai-tools</a></p>
+    <p><strong>Reddit:</strong> <a href="https://reddit.com/user/AIRadarDaily" target="_blank">u/AIRadarDaily</a></p>
+  </section>
+
+  <p class="footer-quote">如果你觉得有用,请把这个网站告诉一个朋友 💛</p>
+
+  <div class="center">
+    <a class="back" href="./">← 返回首页</a>
+  </div>
+</div>
 </body>
 </html>"""
 def build_html(articles):
@@ -452,6 +656,11 @@ def main():
     out = os.path.join("public", "index.html")
     with open(out, "w", encoding="utf-8") as f:
         f.write(build_html(all_items))
+    # 生成 about 页面
+    about_out = os.path.join("public", "about.html")
+    with open(about_out, "w", encoding="utf-8") as f:
+        f.write(ABOUT_HTML)
+    print(f"Done: {about_out}")
     print(f"\nDone: {out} ({len(all_items)} items)")
 if __name__ == "__main__":
     main()
