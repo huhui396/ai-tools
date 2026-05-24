@@ -42,14 +42,38 @@ def parse_feed(name, url):
         return []
     parsed = feedparser.parse(raw)
     items = []
+    now = datetime.now(timezone.utc)
     for entry in parsed.entries[:PER_FEED_LIMIT]:
         summary = entry.get("summary") or entry.get("description") or ""
         summary = re.sub(r"<[^>]+>", "", summary).strip()[:80]
+        # 解析发布时间
+        pub_str = ""
+        is_new = False
+        pub_parsed = entry.get("published_parsed") or entry.get("updated_parsed")
+        if pub_parsed:
+            try:
+                pub_dt = datetime(*pub_parsed[:6], tzinfo=timezone.utc)
+                delta = now - pub_dt
+                hours = delta.total_seconds() / 3600
+                if hours < 1:
+                    pub_str = "刚刚"
+                    is_new = True
+                elif hours < 24:
+                    pub_str = f"{int(hours)} 小时前"
+                    is_new = True
+                elif hours < 24 * 7:
+                    pub_str = f"{int(hours / 24)} 天前"
+                else:
+                    pub_str = pub_dt.strftime("%m-%d")
+            except Exception:
+                pass
         items.append({
             "title": (entry.get("title") or "无标题").strip(),
             "link": (entry.get("link") or "#").strip(),
             "source": name,
             "summary": summary,
+            "pub_str": pub_str,
+            "is_new": is_new,
         })
     print(f"  ok: {len(items)}")
     return items
@@ -190,7 +214,6 @@ header .subtitle { font-size: 1.05rem; color: var(--muted); margin-top: 12px; fo
 }
 .card:active { transform: scale(0.985); border-color: var(--accent); }
 .title { font-size: 1.15rem; font-weight: 600; line-height: 1.45; word-break: break-word; }
-.card-body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .summary { font-size: 0.92rem; color: var(--muted); line-height: 1.45; word-break: break-word; }
 .arrow { font-size: 1.7rem; color: var(--accent); flex-shrink: 0; opacity: 0.6; transition: opacity 0.15s; }
 .card:active .arrow { opacity: 1; }
@@ -226,6 +249,67 @@ footer {
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
 }
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.new-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  margin-top: 4px;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+.card-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+.next-update {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+.header-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.action-btn {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  transition: all 0.15s;
+}
+.action-btn:active {
+  transform: scale(0.96);
+  border-color: var(--accent);
+}
 .hidden { display: none !important; }
 </style>
 </head>
@@ -245,6 +329,10 @@ footer {
       <span>📡 <b>__SOURCES__</b> 个源</span>
       <span class="dot"></span>
       <span>🕒 __TIME__</span>
+    </div>
+    <div class="next-update">⏰ 下次更新 __NEXT_UPDATE__</div>
+    <div class="header-actions">
+      <button class="action-btn" onclick="shareNow()">🔗 分享给朋友</button>
     </div>
   </header>
   <div class="search-bar">
@@ -293,24 +381,55 @@ window.addEventListener('scroll', () => {
   toTop.classList.toggle('show', window.scrollY > 400);
 }, { passive: true });
 toTop.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+function shareNow() {
+  const url = 'https://huhui396.github.io/ai-tools/';
+  const text = 'AI 工具情报站 - 每天 5 分钟,跟上全球 AI 圈';
+  if (navigator.share) {
+    navigator.share({ title: text, url: url }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(url).then(() => {
+      alert('链接已复制!');
+    });
+  }
+}
 </script>
 </body>
 </html>"""
 def build_html(articles):
     bj = datetime.now(timezone(timedelta(hours=8)))
     stamp = bj.strftime("%m-%d %H:%M")
+    # 下次更新时间 (北京时间次日 8:00)
+    next_update = (bj + timedelta(days=1)).replace(hour=8, minute=0, second=0)
+    # 如果当前还没到今天 8:00,下次就是今天 8:00
+    today_8am = bj.replace(hour=8, minute=0, second=0)
+    if bj < today_8am:
+        next_update = today_8am
+    next_update_str = next_update.strftime("%m-%d %H:%M")
     by_source = {}
     for a in articles:
         by_source.setdefault(a["source"], []).append(a)
+
+    def render_card(it):
+        title = html.escape(it["title"])
+        arrow = '<span class="arrow">›</span>'
+        new_badge = '<span class="new-badge">NEW</span>' if it.get("is_new") else ''
+        pub_str = html.escape(it.get("pub_str", ""))
+        summary = html.escape(it.get("summary", ""))
+        summary_html = f'<span class="summary">{summary}</span>' if it.get("summary") else ''
+        meta = f'<div class="card-meta">{pub_str}</div>' if pub_str else ''
+        return (
+            f'      <a class="card" href="{html.escape(it["link"])}" target="_blank" rel="noopener">'
+            f'<div class="card-content">'
+            f'<div class="card-title-row"><span class="title">{title}</span>{new_badge}</div>'
+            f'{summary_html}'
+            f'{meta}'
+            f'</div>'
+            f'{arrow}</a>'
+        )
+
     sections = []
     for source, items in by_source.items():
-        cards = "\n".join(
-            f'      <a class="card" href="{html.escape(it["link"])}" target="_blank" rel="noopener">'
-            f'<div class="card-body"><span class="title">{html.escape(it["title"])}</span>'
-            + (f'<span class="summary">{html.escape(it.get("summary",""))}</span>' if it.get("summary") else "")
-            + f'</div><span class="arrow">›</span></a>'
-            for it in items
-        )
+        cards = "\n".join(render_card(it) for it in items)
         sections.append(
             f'    <section class="group" data-source="{html.escape(source)}">\n'
             f'      <h2 class="group-title">{html.escape(source)}'
@@ -323,6 +442,7 @@ def build_html(articles):
             .replace("__TOTAL__", str(len(articles)))
             .replace("__SOURCES__", str(len(by_source)))
             .replace("__TIME__", stamp)
+            .replace("__NEXT_UPDATE__", next_update_str)
             .replace("__BODY__", body))
 def main():
     all_items = []
