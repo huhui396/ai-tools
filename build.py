@@ -5,6 +5,8 @@ AI 工具情报站 - 每天自动聚合 AI 领域信息源
 import html
 import os
 import re
+import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 import feedparser
@@ -12,6 +14,8 @@ import requests
 
 SITE_URL = "https://huhui396.github.io/ai-tools/"
 LATEST_LIMIT = 40
+# 抓到的有效条目少于这个数,视为构建失败:不写文件、不部署,保住上一版线上页面
+MIN_ITEMS = 5
 
 # 两个页面共用的设计变量与基础重置,集中维护,避免改主题色要改两处
 SHARED_CSS = r""":root {
@@ -65,14 +69,34 @@ TIMEOUT = 15
 UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
       "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 "
       "Mobile/15E148 Safari/604.1")
+HEADERS = {
+    "User-Agent": UA,
+    "Accept": ("application/rss+xml, application/atom+xml, "
+               "application/xml;q=0.9, text/xml;q=0.8, */*;q=0.7"),
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+}
+RETRIES = 3
+RETRY_STATUS = {429, 500, 502, 503, 504}
 def fetch(url):
-    try:
-        r = requests.get(url, headers={"User-Agent": UA}, timeout=TIMEOUT)
-        r.raise_for_status()
-        return r.content
-    except Exception as e:
-        print(f"  fail: {e}")
-        return None
+    for attempt in range(RETRIES):
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+            if r.status_code in RETRY_STATUS and attempt < RETRIES - 1:
+                time.sleep(2 ** attempt)
+                continue
+            r.raise_for_status()
+            return r.content
+        except requests.HTTPError as e:
+            # 4xx 或已耗尽重试的 5xx:硬失败,重试无意义
+            print(f"  fail: {e}")
+            return None
+        except Exception as e:
+            # 网络类错误(超时/连接):退避后重试
+            if attempt < RETRIES - 1:
+                time.sleep(2 ** attempt)
+                continue
+            print(f"  fail: {e}")
+            return None
 def parse_feed(name, url):
     print(f"-> {name}")
     raw = fetch(url)
@@ -755,6 +779,11 @@ def main():
     with ThreadPoolExecutor(max_workers=8) as ex:
         results = list(ex.map(lambda kv: parse_feed(*kv), FEEDS.items()))
     all_items = dedup([it for items in results for it in items])
+
+    if len(all_items) < MIN_ITEMS:
+        print(f"\nABORT: only {len(all_items)} items (< {MIN_ITEMS}). "
+              f"Skip writing/deploy to keep the last good site.")
+        sys.exit(1)
 
     os.makedirs("public", exist_ok=True)
     out = os.path.join("public", "index.html")
