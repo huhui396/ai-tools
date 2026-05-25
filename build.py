@@ -185,6 +185,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta name="twitter:description" content="The pulse of AI, every morning.">
 <meta name="twitter:image" content="https://huhui396.github.io/ai-tools/og.png">
 <link rel="canonical" href="https://huhui396.github.io/ai-tools/">
+<link rel="alternate" type="application/rss+xml" title="AI Radar Daily" href="feed.xml">
+<link rel="alternate" type="application/feed+json" title="AI Radar Daily" href="feed.json">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -420,7 +422,7 @@ __BODY__
   <footer>
     <p>Updated daily · Powered by GitHub Actions</p>
     <p style="margin-top:6px">10 curated AI sources · Free &amp; open-source</p>
-    <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:500;">About →</a></p>
+    <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:500;">About</a> · <a href="feed.xml" style="color:var(--accent);text-decoration:none;font-weight:500;">RSS</a></p>
   </footer>
 </div>
 <button class="to-top" id="toTop" aria-label="Back to top">↑</button>
@@ -762,15 +764,15 @@ def write_site_files():
         f.write(robots)
 
 
-def generate_og_image(path):
-    """生成 1200x630 社交分享图(拉丁品牌文案)。失败不影响站点构建。"""
+def generate_og_image(path, articles):
+    """生成 1200x630 动态社交分享图:日期 + 当天 Top 3 头条。失败不影响构建。"""
     try:
         from PIL import Image, ImageDraw, ImageFont
     except Exception as e:
         print(f"  og skip (Pillow unavailable): {e}")
         return
     try:
-        W, H = 1200, 630
+        W, H, PAD = 1200, 630, 70
         top, bot = (37, 99, 235), (124, 58, 237)
         img = Image.new("RGB", (W, H))
         px = img.load()
@@ -781,24 +783,48 @@ def generate_og_image(path):
             for x in range(W):
                 px[x, y] = (r, g, b)
         draw = ImageDraw.Draw(img)
-        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        reg = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
-        def load(size):
+        def font(fp, size):
             try:
-                return ImageFont.truetype(font_path, size)
+                return ImageFont.truetype(fp, size)
             except Exception:
                 return ImageFont.load_default()
 
-        def centered(text, font, y, fill):
-            box = draw.textbbox((0, 0), text, font=font)
-            draw.text(((W - (box[2] - box[0])) / 2, y), text, font=font, fill=fill)
+        def fit(text, fnt, maxw):
+            if draw.textlength(text, font=fnt) <= maxw:
+                return text
+            while text and draw.textlength(text + "…", font=fnt) > maxw:
+                text = text[:-1]
+            return text.rstrip() + "…"
 
-        centered("AI RADAR", load(150), 150, (255, 255, 255))
-        centered("Daily AI intelligence, in one place",
-                 load(46), 340, (235, 238, 252))
-        centered("ProductHunt  HackerNews  OpenAI  Anthropic  arXiv",
-                 load(30), 430, (210, 215, 245))
-        centered("huhui396.github.io/ai-tools", load(28), 540, (200, 205, 240))
+        # 顶部:品牌 + 日期
+        draw.text((PAD, 54), "AI RADAR DAILY", font=font(bold, 40), fill=(255, 255, 255))
+        date_s = datetime.now(timezone.utc).strftime("%b %d, %Y").upper()
+        dfont = font(reg, 30)
+        draw.text((W - PAD - draw.textlength(date_s, font=dfont), 62),
+                  date_s, font=dfont, fill=(223, 227, 250))
+        draw.line([(PAD, 124), (W - PAD, 124)], fill=(126, 132, 222), width=2)
+
+        # 中部:当天 Top 3 头条
+        recent = sorted((a for a in articles if a.get("ts")),
+                        key=lambda a: a["ts"], reverse=True)[:3]
+        hf = font(bold, 44)
+        y = 166
+        for a in recent:
+            draw.text((PAD, y), "›", font=hf, fill=(186, 196, 255))
+            draw.text((PAD + 42, y), fit(a["title"], hf, W - 2 * PAD - 42),
+                      font=hf, fill=(255, 255, 255))
+            y += 96
+
+        # 底部:站点 + 说明
+        ff = font(reg, 28)
+        draw.text((PAD, H - 72), "10 sources · de-duped · updated daily",
+                  font=ff, fill=(210, 215, 245))
+        site = "huhui396.github.io/ai-tools"
+        draw.text((W - PAD - draw.textlength(site, font=ff), H - 72),
+                  site, font=ff, fill=(210, 215, 245))
         img.save(path, "PNG")
         print(f"Done: {path}")
     except Exception as e:
@@ -883,6 +909,70 @@ self.addEventListener('fetch', e => {
         f.write(sw)
 
 
+def write_feeds(articles):
+    """生成 feed.xml (RSS 2.0) 与 feed.json (JSON Feed 1.1),便于读者订阅。"""
+    recent = sorted((a for a in articles if a.get("ts")),
+                    key=lambda a: a["ts"], reverse=True)[:50]
+    now = datetime.now(timezone.utc)
+
+    def esc(s):
+        return html.escape(s or "", quote=True)
+
+    items_xml = []
+    for a in recent:
+        pub = datetime.fromtimestamp(a["ts"], timezone.utc).strftime(
+            "%a, %d %b %Y %H:%M:%S +0000")
+        desc = esc(a.get("summary", ""))
+        items_xml.append(
+            "<item>"
+            f"<title>{esc(a['title'])}</title>"
+            f"<link>{esc(a['link'])}</link>"
+            f'<guid isPermaLink="true">{esc(a["link"])}</guid>'
+            f"<dc:creator>{esc(a['source'])}</dc:creator>"
+            f"<pubDate>{pub}</pubDate>"
+            + (f"<description>{desc}</description>" if desc else "")
+            + "</item>"
+        )
+    rss = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" '
+        'xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n'
+        '<title>AI Radar Daily</title>\n'
+        f'<link>{SITE_URL}</link>\n'
+        f'<atom:link href="{SITE_URL}feed.xml" rel="self" type="application/rss+xml"/>\n'
+        '<description>The pulse of AI, every morning. '
+        'Auto-curated from 10 top AI sources.</description>\n'
+        '<language>en</language>\n'
+        f'<lastBuildDate>{now.strftime("%a, %d %b %Y %H:%M:%S +0000")}</lastBuildDate>\n'
+        + "\n".join(items_xml) +
+        '\n</channel>\n</rss>\n'
+    )
+    with open(os.path.join("public", "feed.xml"), "w", encoding="utf-8") as f:
+        f.write(rss)
+
+    jf = {
+        "version": "https://jsonfeed.org/version/1.1",
+        "title": "AI Radar Daily",
+        "home_page_url": SITE_URL,
+        "feed_url": SITE_URL + "feed.json",
+        "description": "The pulse of AI, every morning. Auto-curated from 10 top AI sources.",
+        "language": "en",
+        "items": [
+            {
+                "id": a["link"],
+                "url": a["link"],
+                "title": a["title"],
+                **({"content_text": a["summary"]} if a.get("summary") else {}),
+                "date_published": datetime.fromtimestamp(a["ts"], timezone.utc).isoformat(),
+                "authors": [{"name": a["source"]}],
+            }
+            for a in recent
+        ],
+    }
+    with open(os.path.join("public", "feed.json"), "w", encoding="utf-8") as f:
+        json.dump(jf, f, ensure_ascii=False, indent=2)
+
+
 def main():
     with ThreadPoolExecutor(max_workers=8) as ex:
         results = list(ex.map(lambda kv: parse_feed(*kv), FEEDS.items()))
@@ -902,7 +992,8 @@ def main():
     with open(about_out, "w", encoding="utf-8") as f:
         f.write(ABOUT_HTML.replace("/*__SHARED_CSS__*/", SHARED_CSS))
     write_site_files()
-    generate_og_image(os.path.join("public", "og.png"))
+    write_feeds(all_items)
+    generate_og_image(os.path.join("public", "og.png"), all_items)
     generate_icons()
     write_pwa()
     print(f"Done: {about_out}")

@@ -3,9 +3,11 @@ name: AI Tools Daily
 on:
   schedule:
     # GitHub 定时任务是"尽力而为",整点(尤其 UTC 00:00)最拥堵、常被延迟或丢弃。
-    # 用两个错峰时间、且都在北京 8 点前,提高每天 8 点前刷新成功的概率。
-    - cron: '30 23 * * *'   # 23:30 UTC = 北京 07:30
-    - cron: '55 23 * * *'   # 23:55 UTC = 北京 07:55
+    # 用多个错峰时间、且都在北京 8 点前,任一跑成功即可保证 8 点前刷新。
+    # 要 100% 准点请另配外部触发(cron-job.org → workflow_dispatch)。
+    - cron: '5 23 * * *'    # 23:05 UTC = 北京 07:05
+    - cron: '25 23 * * *'   # 23:25 UTC = 北京 07:25
+    - cron: '45 23 * * *'   # 23:45 UTC = 北京 07:45
   push:
     branches: [main]
   workflow_dispatch:
