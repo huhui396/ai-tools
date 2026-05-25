@@ -78,8 +78,6 @@ FEEDS = {
     "OpenAI Blog":     "https://openai.com/blog/rss.xml",
     "Anthropic":       "https://www.anthropic.com/news/rss.xml",
     "Hugging Face":    "https://huggingface.co/blog/feed.xml",
-    "机器之心":         "https://www.jiqizhixin.com/rss",
-    "量子位":           "https://www.qbitai.com/feed",
 }
 PER_FEED_LIMIT = 8
 TIMEOUT = 15
@@ -173,9 +171,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <meta name="theme-color" content="#0a0a0b" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
 <title>🛰️ AI 工具情报站</title>
-<meta name="description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英文源,每天更新">
+<meta name="description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等全球 AI 信息源,每天更新">
 <meta property="og:title" content="AI 工具情报站 - 每天 5 分钟跟上全球 AI 圈">
-<meta property="og:description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等 AI 信息源,中英文源,每天更新">
+<meta property="og:description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等全球 AI 信息源,每天更新">
 <meta property="og:url" content="https://huhui396.github.io/ai-tools/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="zh_CN">
@@ -421,7 +419,7 @@ __BODY__
   <p class="empty hidden" id="noResults">没有找到相关内容，换个关键词试试</p>
   <footer>
     <p>每天 08:00 自动更新 · Powered by GitHub Actions</p>
-    <p style="margin-top:6px">12 个精选中英文 AI 信息源 · 开源免费</p>
+    <p style="margin-top:6px">10 个精选全球 AI 信息源 · 开源免费</p>
     <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:500;">关于本站 →</a></p>
   </footer>
 </div>
@@ -629,7 +627,7 @@ header h1 {
     Hi,我是 <strong>AIRadar 🛰</strong><br><br>
     我是一个对 AI 行业感兴趣的独立开发者,
     每天看不完 AI 新闻,所以做了这个工具,
-    把 12 个最好的 AI 信息源聚合到一起,
+    把 10 个最好的 AI 信息源聚合到一起,
     每天自动抓取、去重、按时间排好,一页看完。
   </div>
 
@@ -641,7 +639,6 @@ header h1 {
       <li>• The Decoder / VentureBeat / MIT Tech Review</li>
       <li>• ArXiv AI 最新论文</li>
       <li>• Hacker News (AI 相关)</li>
-      <li>• 机器之心 / 量子位 (中文)</li>
     </ul>
   </section>
 
@@ -659,7 +656,7 @@ header h1 {
   <section class="section">
     <h2>怎么实现的</h2>
     <p>GitHub Actions 每天 8:00 自动跑<br>
-    + Python 并行抓取 12 个 RSS 源(自动去重)<br>
+    + Python 并行抓取 10 个 RSS 源(自动去重)<br>
     + GitHub Pages 静态托管</p>
   </section>
 
