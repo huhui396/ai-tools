@@ -422,7 +422,7 @@ __BODY__
   <footer>
     <p>Updated daily · Powered by GitHub Actions</p>
     <p style="margin-top:6px">10 curated AI sources · Free &amp; open-source</p>
-    <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:500;">About</a> · <a href="feed.xml" style="color:var(--accent);text-decoration:none;font-weight:500;">RSS</a></p>
+    <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:500;">About →</a></p>
   </footer>
 </div>
 <button class="to-top" id="toTop" aria-label="Back to top">↑</button>
