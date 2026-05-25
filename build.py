@@ -17,6 +17,10 @@ SITE_URL = "https://huhui396.github.io/ai-tools/"
 LATEST_LIMIT = 40
 # 抓到的有效条目少于这个数,视为构建失败:不写文件、不部署,保住上一版线上页面
 MIN_ITEMS = 5
+# LLM 增强(一句话 "why it matters" + 当日 Top 5)。需环境变量 AI_API_KEY,缺失则跳过。
+AI_ENRICH_LIMIT = 60
+AI_BASE_DEFAULT = "https://api.openai.com/v1"
+AI_MODEL_DEFAULT = "gpt-4o-mini"
 
 # 两个页面共用的设计变量与基础重置,集中维护,避免改主题色要改两处
 SHARED_CSS = r""":root {
@@ -328,6 +332,7 @@ header .subtitle { font-size: 0.9375rem; color: var(--muted); margin-top: 13px; 
   font-size: 0.875rem; color: var(--muted); line-height: 1.5; word-break: break-word;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+.summary.why { color: var(--text-2); }
 .arrow {
   color: var(--muted); flex-shrink: 0; opacity: 0.5;
   display: flex; align-items: center;
@@ -428,13 +433,14 @@ __BODY__
 <button class="to-top" id="toTop" aria-label="Back to top">↑</button>
 <script>
 const allGroups = Array.from(document.querySelectorAll('.group'));
+const topGroup = document.querySelector('.top-group');
 const latestGroup = document.querySelector('.latest-group');
-const sourceGroups = allGroups.filter(g => !g.classList.contains('latest-group'));
+const sourceGroups = allGroups.filter(g => !g.classList.contains('top-group') && !g.classList.contains('latest-group'));
 const search = document.getElementById('search');
 const noResults = document.getElementById('noResults');
 const tabsEl = document.getElementById('tabs');
-const tabNames = ['All', ...(latestGroup ? ['Latest'] : []), ...sourceGroups.map(g => g.dataset.source)];
-let activeTab = 'All';
+const tabNames = [...(topGroup ? ['Top'] : []), 'All', ...(latestGroup ? ['Latest'] : []), ...sourceGroups.map(g => g.dataset.source)];
+let activeTab = tabNames[0];
 
 function cardMatches(card, q) {
   if (!q) return true;
@@ -447,11 +453,13 @@ function applyFilters() {
   const q = search.value.trim().toLowerCase();
   let anyVisible = false;
   allGroups.forEach(g => {
+    const isTop = g.classList.contains('top-group');
     const isLatest = g.classList.contains('latest-group');
     let inTab;
-    if (activeTab === 'All') inTab = !isLatest;
+    if (activeTab === 'Top') inTab = isTop;
+    else if (activeTab === 'All') inTab = !isTop && !isLatest;
     else if (activeTab === 'Latest') inTab = isLatest;
-    else inTab = !isLatest && g.dataset.source === activeTab;
+    else inTab = !isTop && !isLatest && g.dataset.source === activeTab;
     if (!inTab) { g.classList.add('hidden'); return; }
     let visible = 0;
     g.querySelectorAll('.card').forEach(card => {
@@ -657,7 +665,7 @@ header h1 {
   <section class="section">
     <h2>How it works</h2>
     <p>Runs on GitHub Actions every morning<br>
-    + Python fetches 10 RSS feeds in parallel (auto de-duped)<br>
+    + Python fetches 10 RSS feeds in parallel (auto de-duped)<br>__AI_LINE__
     + hosted free on GitHub Pages</p>
   </section>
 
@@ -675,7 +683,7 @@ header h1 {
 </div>
 </body>
 </html>"""
-def build_html(articles):
+def build_html(articles, top5=None):
     stamp = datetime.now(timezone.utc).strftime("%b %d, %H:%M")
     by_source = {}
     for a in articles:
@@ -689,20 +697,35 @@ def build_html(articles):
                  'stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>')
         new_badge = '<span class="new-badge">NEW</span>' if it.get("is_new") else ''
         pub_str = html.escape(it.get("pub_str", ""))
-        summary = html.escape(it.get("summary", ""))
-        summary_html = f'<span class="summary">{summary}</span>' if it.get("summary") else ''
+        why = (it.get("why") or "").strip()
+        if why:
+            body_line = f'<span class="summary why">{html.escape(why)}</span>'
+        elif it.get("summary"):
+            body_line = f'<span class="summary">{html.escape(it["summary"])}</span>'
+        else:
+            body_line = ''
         meta = f'<div class="card-meta">{pub_str}</div>' if pub_str else ''
         return (
             f'      <a class="card" href="{html.escape(it["link"])}" target="_blank" rel="noopener">'
             f'<div class="card-content">'
             f'<div class="card-title-row"><span class="title">{title}</span>{new_badge}</div>'
-            f'{summary_html}'
+            f'{body_line}'
             f'{meta}'
             f'</div>'
             f'{arrow}</a>'
         )
 
     sections = []
+    # Today's Top 5: AI-picked, shown first and as the default "Top" tab
+    if top5:
+        cards = "\n".join(render_card(it) for it in top5)
+        sections.append(
+            f'    <section class="group top-group" data-source="Top">\n'
+            f"      <h2 class=\"group-title\">Today's Top {len(top5)}"
+            f' <span class="count">{len(top5)}</span></h2>\n'
+            f'{cards}\n'
+            f'    </section>'
+        )
     # Latest: all sources merged, newest first; hidden by default, shown via the "Latest" tab
     recent = sorted((a for a in articles if a.get("ts")),
                     key=lambda a: a["ts"], reverse=True)[:LATEST_LIMIT]
@@ -743,6 +766,99 @@ def dedup(items):
             seen.add(link)
         out.append(it)
     return out
+
+
+_STOP = {"the", "a", "an", "to", "of", "in", "on", "for", "and", "or", "with",
+         "is", "are", "ai", "new", "how", "why", "what", "its", "by", "at", "as",
+         "this", "that", "from", "your", "you", "we", "it", "be", "will", "can",
+         "into", "over", "but", "not", "now", "out", "up"}
+
+
+def _title_tokens(title):
+    words = re.findall(r"[a-z0-9]+", (title or "").lower())
+    return {w for w in words if len(w) > 2 and w not in _STOP}
+
+
+def cluster_dedup(items):
+    """合并跨源近似重复的标题(确定性,不依赖外部 API),保留先出现的一条。"""
+    kept, kept_tokens = [], []
+    for it in items:
+        toks = _title_tokens(it.get("title", ""))
+        is_dup = False
+        if len(toks) >= 4:
+            for kt in kept_tokens:
+                inter = len(toks & kt)
+                union = len(toks | kt)
+                if union and inter >= 4 and inter / union >= 0.6:
+                    is_dup = True
+                    break
+        if is_dup:
+            continue
+        kept.append(it)
+        kept_tokens.append(toks)
+    return kept
+
+
+def _extract_json(text):
+    text = text.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```[a-zA-Z]*\n?", "", text).rstrip("`").rstrip()
+    a, b = text.find("{"), text.rfind("}")
+    return text[a:b + 1] if a != -1 and b != -1 else text
+
+
+def ai_enrich(items):
+    """用 LLM 为最新条目写一句话 "why it matters" 并挑当日 Top 5。
+    需环境变量 AI_API_KEY;缺失或失败则跳过(站点照常构建)。返回 Top 5 列表或 None。"""
+    key = os.environ.get("AI_API_KEY")
+    if not key:
+        print("  AI: AI_API_KEY not set — skipping summaries / Top 5")
+        return None
+    base = (os.environ.get("AI_BASE_URL") or AI_BASE_DEFAULT).rstrip("/")
+    model = os.environ.get("AI_MODEL") or AI_MODEL_DEFAULT
+    subset = sorted((a for a in items if a.get("ts")),
+                    key=lambda a: a["ts"], reverse=True)[:AI_ENRICH_LIMIT]
+    if not subset:
+        return None
+    listing = "\n".join(f'{i}. [{a["source"]}] {a["title"]}'
+                        for i, a in enumerate(subset))
+    system = ("You are the editor of a daily AI newsletter for a technical, "
+              "startup-savvy audience. Be sharp, concrete and non-hype.")
+    user = (
+        "Below are today's AI headlines (index, source, title):\n\n"
+        f"{listing}\n\n"
+        "Return STRICT JSON only, shaped exactly like:\n"
+        '{"items":[{"i":0,"why":"one line, <=12 words, why it matters, no fluff"}],'
+        '"top5":[0,0,0,0,0]}\n'
+        "Write a `why` for EVERY index. `top5` = indices of the 5 most "
+        "important/impactful stories for this audience, most important first."
+    )
+    try:
+        r = requests.post(
+            f"{base}/chat/completions",
+            headers={"Authorization": f"Bearer {key}",
+                     "Content-Type": "application/json"},
+            json={"model": model, "temperature": 0.3,
+                  "messages": [{"role": "system", "content": system},
+                               {"role": "user", "content": user}]},
+            timeout=90,
+        )
+        r.raise_for_status()
+        content = r.json()["choices"][0]["message"]["content"]
+        data = json.loads(_extract_json(content))
+        n = 0
+        for w in data.get("items", []):
+            i, why = w.get("i"), (w.get("why") or "").strip()
+            if isinstance(i, int) and 0 <= i < len(subset) and why:
+                subset[i]["why"] = why[:160]
+                n += 1
+        top5 = [i for i in data.get("top5", [])
+                if isinstance(i, int) and 0 <= i < len(subset)][:5]
+        print(f"  AI: wrote {n} summaries, top5={top5}")
+        return [subset[i] for i in top5] if top5 else None
+    except Exception as e:
+        print(f"  AI enrich failed (non-fatal): {e}")
+        return None
 
 
 def write_site_files():
@@ -1043,21 +1159,27 @@ def write_feeds(articles):
 def main():
     with ThreadPoolExecutor(max_workers=8) as ex:
         results = list(ex.map(lambda kv: parse_feed(*kv), FEEDS.items()))
-    all_items = dedup([it for items in results for it in items])
+    all_items = cluster_dedup(dedup([it for items in results for it in items]))
 
     if len(all_items) < MIN_ITEMS:
         print(f"\nABORT: only {len(all_items)} items (< {MIN_ITEMS}). "
               f"Skip writing/deploy to keep the last good site.")
         sys.exit(1)
 
+    top5 = ai_enrich(all_items)
+    ai_on = bool(top5) or any(a.get("why") for a in all_items)
+
     os.makedirs("public", exist_ok=True)
     out = os.path.join("public", "index.html")
     with open(out, "w", encoding="utf-8") as f:
-        f.write(build_html(all_items))
+        f.write(build_html(all_items, top5))
     # 生成 about 页面
+    ai_line = ('\n    + a small AI model writes a one-line "why it matters" '
+               "&amp; picks Today's Top 5<br>") if ai_on else ""
     about_out = os.path.join("public", "about.html")
     with open(about_out, "w", encoding="utf-8") as f:
-        f.write(ABOUT_HTML.replace("/*__SHARED_CSS__*/", SHARED_CSS))
+        f.write(ABOUT_HTML.replace("/*__SHARED_CSS__*/", SHARED_CSS)
+                .replace("__AI_LINE__", ai_line))
     write_site_files()
     write_feeds(all_items)
     generate_og_image(os.path.join("public", "og.png"), all_items)
