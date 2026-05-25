@@ -39,6 +39,11 @@ SHARED_CSS = r""":root {
   --r-pill: 999px;
   --blur: blur(14px) saturate(160%);
   --ease: cubic-bezier(.16, 1, .3, 1);
+  --card-border: rgba(9, 9, 11, 0);
+  --card-shadow: 0 6px 24px rgba(15, 23, 42, 0.05);
+  --card-shadow-hover: 0 14px 36px -6px rgba(15, 23, 42, 0.10);
+  --tab-active: #4338ca;
+  --new-fg: #7c3aed;
   --ic-search: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-3.6-3.6'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark) {
@@ -54,6 +59,11 @@ SHARED_CSS = r""":root {
     --border-strong: rgba(255, 255, 255, 0.15);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -14px rgba(0, 0, 0, 0.6);
     --shadow-lg: 0 1px 2px rgba(0, 0, 0, 0.5), 0 18px 38px -16px rgba(0, 0, 0, 0.7);
+    --card-border: rgba(255, 255, 255, 0.07);
+    --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    --card-shadow-hover: 0 14px 36px rgba(0, 0, 0, 0.55);
+    --tab-active: #6366f1;
+    --new-fg: #a78bfa;
   }
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }"""
@@ -115,9 +125,12 @@ def parse_feed(name, url):
     for entry in parsed.entries[:PER_FEED_LIMIT]:
         summary = entry.get("summary") or entry.get("description") or ""
         summary = html.unescape(re.sub(r"<[^>]+>", "", summary))
-        summary = re.sub(r"\s+", " ", summary)
+        # 砍掉 Hacker News 等源的 "Article URL: … Comments URL: …" 样板
+        summary = re.split(r"(?:Article|Comments)\s+URL\s*:", summary, maxsplit=1)[0]
+        # 去掉任何裸露的长链接,避免原始数据暴露在卡片里
+        summary = re.sub(r"https?://\S+", "", summary)
         summary = re.sub(r"\s*\b(Discussion|Comments?)\b\s*[|·–—-].*$", "", summary, flags=re.I)
-        summary = summary.strip()[:120]
+        summary = re.sub(r"\s+", " ", summary).strip()[:120]
         # 解析发布时间
         pub_str = ""
         is_new = False
@@ -198,23 +211,26 @@ body {
   min-height: 100vh;
 }
 .wrapper { max-width: 720px; margin: 0 auto; }
-header { text-align: center; padding: 28px 12px 12px; }
+header { text-align: center; padding: 30px 12px 10px; }
 header h1 {
-  font-size: 1.6rem;
+  display: flex; align-items: center; justify-content: center; gap: 11px;
+  font-size: 1.7rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
-header .subtitle { font-size: 1rem; color: var(--muted); margin-top: 10px; font-weight: 450; }
+header h1 .logo { width: 30px; height: 30px; flex-shrink: 0; }
+header .subtitle { font-size: 0.9375rem; color: var(--muted); margin-top: 13px; font-weight: 400; letter-spacing: 0.04em; }
 .stats {
-  display: inline-flex; align-items: center; gap: 10px; margin-top: 18px;
+  display: inline-flex; align-items: center; gap: 11px; margin-top: 20px;
   font-size: 0.8125rem; color: var(--muted);
-  background: var(--card);
-  padding: 7px 16px; border-radius: var(--r-pill);
-  border: 1px solid var(--border); box-shadow: var(--shadow);
+  background: color-mix(in srgb, var(--card) 60%, transparent);
+  backdrop-filter: blur(12px) saturate(140%); -webkit-backdrop-filter: blur(12px) saturate(140%);
+  padding: 8px 18px; border-radius: var(--r-pill);
+  border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
-.stats b { color: var(--text); font-weight: 600; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
-.stats .dot { width: 3px; height: 3px; background: var(--muted); border-radius: 50%; opacity: 0.55; }
+.stats b { color: var(--text); font-weight: 700; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.stats .sep { color: var(--border-strong); font-weight: 300; }
 .header-actions { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
 .action-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -236,10 +252,10 @@ header .subtitle { font-size: 1rem; color: var(--muted); margin-top: 10px; font-
 }
 .search-bar { position: relative; }
 .search-bar input {
-  width: 100%; font-size: 0.9375rem; padding: 13px 18px 13px 46px;
+  width: 100%; font-size: 0.9063rem; padding: 10px 18px 10px 44px;
   border-radius: var(--r); border: 1px solid var(--border);
   background: var(--card);
-  color: var(--text); box-shadow: var(--shadow); outline: none; font-weight: 450;
+  color: var(--text); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); outline: none; font-weight: 450;
   transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
 }
 .search-bar input::placeholder { color: var(--muted); }
@@ -265,11 +281,18 @@ header .subtitle { font-size: 1rem; color: var(--muted); margin-top: 10px; font-
   flex-shrink: 0; padding: 8px 15px; border-radius: var(--r-pill); border: 1px solid var(--border);
   background: var(--card);
   color: var(--text-2); font-size: 0.8125rem; font-weight: 500; cursor: pointer; white-space: nowrap;
-  transition: background .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease);
+  transition: background .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease),
+              transform .18s var(--ease), box-shadow .18s var(--ease);
 }
-.tab.active { background: var(--accent); color: #fff; border-color: transparent; }
+.tab.active {
+  background: var(--tab-active); color: #fff; border-color: transparent;
+  box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--tab-active) 50%, transparent);
+}
 @media (hover: hover) {
-  .tab:hover:not(.active) { color: var(--text); border-color: var(--border-strong); }
+  .tab:hover:not(.active) {
+    color: var(--text); border-color: var(--border-strong);
+    background: var(--card-hover); transform: translateY(-1px);
+  }
 }
 .group { margin-bottom: 8px; }
 .group-title {
@@ -289,17 +312,14 @@ header .subtitle { font-size: 1rem; color: var(--muted); margin-top: 10px; font-
 .card {
   display: flex; align-items: center; gap: 14px;
   background: var(--card);
-  border: 1px solid var(--border); border-radius: var(--r);
-  padding: 17px 19px; margin-bottom: 9px;
+  border: 1px solid var(--card-border); border-radius: 16px;
+  padding: 18px 20px; margin-bottom: 12px;
   text-decoration: none; color: var(--text);
-  box-shadow: var(--shadow);
-  transition: transform .22s var(--ease), box-shadow .22s var(--ease), border-color .22s var(--ease), background .22s var(--ease);
+  box-shadow: var(--card-shadow);
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease);
 }
 @media (hover: hover) {
-  .card:hover {
-    transform: translateY(-2px); background: var(--card-hover);
-    border-color: var(--border-strong); box-shadow: var(--shadow-lg);
-  }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
   .card:hover .arrow { opacity: 1; transform: translateX(3px); }
 }
 .card:active { transform: translateY(0); }
@@ -349,9 +369,9 @@ footer {
   display: inline-block;
   font-size: 0.625rem;
   font-weight: 700;
-  color: #ef4444;
-  background: color-mix(in srgb, #ef4444 12%, transparent);
-  border: 1px solid color-mix(in srgb, #ef4444 22%, transparent);
+  color: var(--new-fg);
+  background: color-mix(in srgb, var(--new-fg) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--new-fg) 20%, transparent);
   padding: 1px 7px;
   border-radius: var(--r-pill);
   letter-spacing: 0.04em;
@@ -373,13 +393,13 @@ footer {
 <body>
 <div class="wrapper">
   <header>
-    <h1>🛰️ AI 工具情报站</h1>
+    <h1><svg class="logo" viewBox="0 0 24 24" fill="none" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><defs><linearGradient id="logoGrad" x1="2" y1="3" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><g stroke="url(#logoGrad)"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34"/><path d="M4 6h.01"/><path d="M2.29 9.62A10 10 0 1 0 21.31 8.35"/><path d="M16.24 7.76A6 6 0 1 0 8.23 16.67"/><path d="M12 18h.01"/><path d="M17.99 11.66A6 6 0 0 1 15.77 16.67"/><circle cx="12" cy="12" r="2"/><path d="m13.41 10.59 5.66-5.66"/></g></svg>AI 工具情报站</h1>
     <p class="subtitle">每天 5 分钟，跟上全球 AI 圈</p>
     <div class="stats">
       <span><b>__TOTAL__</b> 条</span>
-      <span class="dot"></span>
+      <span class="sep">|</span>
       <span><b>__SOURCES__</b> 个源</span>
-      <span class="dot"></span>
+      <span class="sep">|</span>
       <span>__TIME__ 更新</span>
     </div>
     <div class="header-actions">
@@ -727,7 +747,7 @@ def dedup(items):
     seen = set()
     out = []
     for it in items:
-        link = (it.get("link") or "").split("?")[0].rstrip("/").lower()
+        link = (it.get("link") or "").split("#")[0].rstrip("/").lower()
         if link and link != "#":
             if link in seen:
                 continue
