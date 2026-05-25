@@ -37,6 +37,10 @@ jobs:
       - run: pip install -r requirements.txt
 
       - run: python build.py
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
 
       - uses: actions/configure-pages@v5
 
