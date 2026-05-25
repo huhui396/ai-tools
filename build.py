@@ -909,6 +909,69 @@ self.addEventListener('fetch', e => {
         f.write(sw)
 
 
+# 浏览器直接打开 feed.xml 时,用这个 XSLT 渲染成品牌化页面,而非裸 XML
+FEED_XSL = r"""<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0"
+  xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+  xmlns:dc="http://purl.org/dc/elements/1.1/">
+<xsl:output method="html" encoding="UTF-8" indent="yes"/>
+<xsl:template match="/rss/channel">
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title><xsl:value-of select="title"/> · RSS feed</title>
+<style>
+:root{--bg:#fafafa;--card:#fff;--text:#0a0a0a;--muted:#71717a;--accent:#4f46e5;--border:rgba(9,9,11,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",Helvetica,Arial,sans-serif;
+background:var(--bg);color:var(--text);line-height:1.5;padding:24px 18px 60px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:680px;margin:0 auto}
+h1{font-size:1.5rem;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--muted);margin-top:6px;font-size:.95rem}
+.note{margin:20px 0 28px;padding:14px 16px;background:color-mix(in srgb,var(--accent) 7%,#fff);
+border:1px solid color-mix(in srgb,var(--accent) 18%,transparent);border-radius:12px;
+font-size:.9rem;color:#3f3f46}
+.note strong{color:var(--accent)}
+.note a{color:var(--accent);font-weight:600;text-decoration:none}
+.item{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--border);
+border-radius:12px;padding:16px 18px;margin-bottom:10px;box-shadow:0 4px 20px rgba(15,23,42,.03);
+transition:transform .2s,box-shadow .2s}
+.item:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(15,23,42,.07)}
+.t{font-size:1.05rem;font-weight:600;letter-spacing:-.01em}
+.m{font-size:.78rem;color:var(--muted);margin-top:6px}
+.d{font-size:.88rem;color:var(--muted);margin-top:8px}
+footer{margin-top:32px;text-align:center;font-size:.8rem;color:var(--muted)}
+footer a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><xsl:value-of select="title"/></h1>
+  <p class="sub"><xsl:value-of select="description"/></p>
+  <div class="note">
+    &#128225; This is an <strong>RSS feed</strong>. Copy this page's URL into a reader
+    like Feedly, Inoreader or NetNewsWire to subscribe — new AI stories land automatically.
+    Or just <a href="./">visit the site</a>.
+  </div>
+  <xsl:for-each select="item">
+    <a class="item" href="{link}">
+      <div class="t"><xsl:value-of select="title"/></div>
+      <div class="m"><xsl:value-of select="dc:creator"/> &#183; <xsl:value-of select="pubDate"/></div>
+      <xsl:if test="description">
+        <div class="d"><xsl:value-of select="description"/></div>
+      </xsl:if>
+    </a>
+  </xsl:for-each>
+  <footer><a href="./">&#8592; Back to AI Radar Daily</a></footer>
+</div>
+</body>
+</html>
+</xsl:template>
+</xsl:stylesheet>
+"""
+
+
 def write_feeds(articles):
     """生成 feed.xml (RSS 2.0) 与 feed.json (JSON Feed 1.1),便于读者订阅。"""
     recent = sorted((a for a in articles if a.get("ts")),
@@ -935,6 +998,7 @@ def write_feeds(articles):
         )
     rss = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<?xml-stylesheet type="text/xsl" href="feed.xsl"?>\n'
         '<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" '
         'xmlns:atom="http://www.w3.org/2005/Atom">\n<channel>\n'
         '<title>AI Radar Daily</title>\n'
@@ -971,6 +1035,9 @@ def write_feeds(articles):
     }
     with open(os.path.join("public", "feed.json"), "w", encoding="utf-8") as f:
         json.dump(jf, f, ensure_ascii=False, indent=2)
+
+    with open(os.path.join("public", "feed.xsl"), "w", encoding="utf-8") as f:
+        f.write(FEED_XSL)
 
 
 def main():
