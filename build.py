@@ -141,19 +141,19 @@ def parse_feed(name, url):
                 delta = now - pub_dt
                 hours = delta.total_seconds() / 3600
                 if hours < 1:
-                    pub_str = "刚刚"
+                    pub_str = "just now"
                     is_new = True
                 elif hours < 24:
-                    pub_str = f"{int(hours)} 小时前"
+                    pub_str = f"{int(hours)}h ago"
                     is_new = True
                 elif hours < 24 * 7:
-                    pub_str = f"{int(hours / 24)} 天前"
+                    pub_str = f"{int(hours / 24)}d ago"
                 else:
-                    pub_str = pub_dt.strftime("%m-%d")
+                    pub_str = pub_dt.strftime("%b %d")
             except Exception:
                 pass
         items.append({
-            "title": (entry.get("title") or "无标题").strip(),
+            "title": (entry.get("title") or "Untitled").strip(),
             "link": (entry.get("link") or "#").strip(),
             "source": name,
             "summary": summary,
@@ -164,32 +164,32 @@ def parse_feed(name, url):
     print(f"  ok: {len(items)}")
     return items
 HTML_TEMPLATE = r"""<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0b" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
-<title>🛰️ AI 工具情报站</title>
-<meta name="description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等全球 AI 信息源,每天更新">
-<meta property="og:title" content="AI 工具情报站 - 每天 5 分钟跟上全球 AI 圈">
-<meta property="og:description" content="自动聚合 ProductHunt、HackerNews、OpenAI、Anthropic 等全球 AI 信息源,每天更新">
+<title>AI Radar Daily — the pulse of AI, every morning</title>
+<meta name="description" content="A daily, auto-curated digest of AI from Product Hunt, Hacker News, OpenAI, Anthropic and more. Free, no ads, updated every morning.">
+<meta property="og:title" content="AI Radar Daily — the pulse of AI, every morning">
+<meta property="og:description" content="A daily, auto-curated digest of AI from Product Hunt, Hacker News, OpenAI, Anthropic and more. Free, no ads, updated every morning.">
 <meta property="og:url" content="https://huhui396.github.io/ai-tools/">
 <meta property="og:type" content="website">
-<meta property="og:locale" content="zh_CN">
+<meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://huhui396.github.io/ai-tools/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="AI 工具情报站">
-<meta name="twitter:description" content="每天 5 分钟,跟上全球 AI 圈">
+<meta name="twitter:title" content="AI Radar Daily">
+<meta name="twitter:description" content="The pulse of AI, every morning.">
 <meta name="twitter:image" content="https://huhui396.github.io/ai-tools/og.png">
 <link rel="canonical" href="https://huhui396.github.io/ai-tools/">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="AI 情报站">
+<meta name="apple-mobile-web-app-title" content="AI Radar">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🛰️%3C/text%3E%3C/svg%3E">
 <style>
@@ -391,39 +391,39 @@ footer {
 <body>
 <div class="wrapper">
   <header>
-    <h1><svg class="logo" viewBox="0 0 24 24" fill="none" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><defs><linearGradient id="logoGrad" x1="2" y1="3" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><g stroke="url(#logoGrad)"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34"/><path d="M4 6h.01"/><path d="M2.29 9.62A10 10 0 1 0 21.31 8.35"/><path d="M16.24 7.76A6 6 0 1 0 8.23 16.67"/><path d="M12 18h.01"/><path d="M17.99 11.66A6 6 0 0 1 15.77 16.67"/><circle cx="12" cy="12" r="2"/><path d="m13.41 10.59 5.66-5.66"/></g></svg>AI 工具情报站</h1>
-    <p class="subtitle">每天 5 分钟，跟上全球 AI 圈</p>
+    <h1><svg class="logo" viewBox="0 0 24 24" fill="none" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><defs><linearGradient id="logoGrad" x1="2" y1="3" x2="22" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><g stroke="url(#logoGrad)"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34"/><path d="M4 6h.01"/><path d="M2.29 9.62A10 10 0 1 0 21.31 8.35"/><path d="M16.24 7.76A6 6 0 1 0 8.23 16.67"/><path d="M12 18h.01"/><path d="M17.99 11.66A6 6 0 0 1 15.77 16.67"/><circle cx="12" cy="12" r="2"/><path d="m13.41 10.59 5.66-5.66"/></g></svg>AI Radar Daily</h1>
+    <p class="subtitle">The pulse of AI, every morning.</p>
     <div class="stats">
-      <span><b>__TOTAL__</b> 条</span>
+      <span><b>__TOTAL__</b> stories</span>
       <span class="sep">|</span>
-      <span><b>__SOURCES__</b> 个源</span>
+      <span><b>__SOURCES__</b> sources</span>
       <span class="sep">|</span>
-      <span>__TIME__ 更新</span>
+      <span>Updated __TIME__ UTC</span>
     </div>
     <div class="header-actions">
       <button class="action-btn" onclick="shareNow()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
-        分享
+        Share
       </button>
     </div>
   </header>
   <div class="filter-bar">
     <div class="search-bar">
-      <input id="search" type="search" placeholder="搜索 AI 工具、论文、新闻…" autocomplete="off">
+      <input id="search" type="search" placeholder="Search tools, papers, launches…" autocomplete="off">
     </div>
     <div class="tabs" id="tabs"></div>
   </div>
   <main id="content">
 __BODY__
   </main>
-  <p class="empty hidden" id="noResults">没有找到相关内容，换个关键词试试</p>
+  <p class="empty hidden" id="noResults">No matches — try another keyword.</p>
   <footer>
-    <p>每天 08:00 自动更新 · Powered by GitHub Actions</p>
-    <p style="margin-top:6px">10 个精选全球 AI 信息源 · 开源免费</p>
-    <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:500;">关于本站 →</a></p>
+    <p>Updated daily · Powered by GitHub Actions</p>
+    <p style="margin-top:6px">10 curated AI sources · Free &amp; open-source</p>
+    <p style="margin-top:14px"><a href="about.html" style="color:var(--accent);text-decoration:none;font-weight:500;">About →</a></p>
   </footer>
 </div>
-<button class="to-top" id="toTop" aria-label="回到顶部">↑</button>
+<button class="to-top" id="toTop" aria-label="Back to top">↑</button>
 <script>
 const allGroups = Array.from(document.querySelectorAll('.group'));
 const latestGroup = document.querySelector('.latest-group');
@@ -431,8 +431,8 @@ const sourceGroups = allGroups.filter(g => !g.classList.contains('latest-group')
 const search = document.getElementById('search');
 const noResults = document.getElementById('noResults');
 const tabsEl = document.getElementById('tabs');
-const tabNames = ['全部', ...(latestGroup ? ['最新'] : []), ...sourceGroups.map(g => g.dataset.source)];
-let activeTab = '全部';
+const tabNames = ['All', ...(latestGroup ? ['Latest'] : []), ...sourceGroups.map(g => g.dataset.source)];
+let activeTab = 'All';
 
 function cardMatches(card, q) {
   if (!q) return true;
@@ -447,8 +447,8 @@ function applyFilters() {
   allGroups.forEach(g => {
     const isLatest = g.classList.contains('latest-group');
     let inTab;
-    if (activeTab === '全部') inTab = !isLatest;
-    else if (activeTab === '最新') inTab = isLatest;
+    if (activeTab === 'All') inTab = !isLatest;
+    else if (activeTab === 'Latest') inTab = isLatest;
     else inTab = !isLatest && g.dataset.source === activeTab;
     if (!inTab) { g.classList.add('hidden'); return; }
     let visible = 0;
@@ -484,17 +484,17 @@ window.addEventListener('scroll', () => {
 toTop.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 function shareNow() {
   const url = 'https://huhui396.github.io/ai-tools/';
-  const text = 'AI 工具情报站 - 每天 5 分钟,跟上全球 AI 圈';
+  const text = 'AI Radar Daily — the pulse of AI, every morning';
   if (navigator.share) {
     navigator.share({ title: text, url: url }).catch(() => {});
   } else {
     navigator.clipboard.writeText(url).then(() => {
-      alert('链接已复制!');
+      alert('Link copied!');
     });
   }
 }
 </script>
-<!-- GoatCounter 访问统计 -->
+<!-- GoatCounter analytics -->
 <script data-goatcounter="https://airadar.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 <script>
@@ -505,13 +505,13 @@ if ('serviceWorker' in navigator) {
 </body>
 </html>"""
 ABOUT_HTML = r"""<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0b" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
-<title>关于 - AI 工具情报站</title>
+<title>About · AI Radar Daily</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🛰️%3C/text%3E%3C/svg%3E">
 <style>
 /*__SHARED_CSS__*/
@@ -620,70 +620,61 @@ header h1 {
 <body>
 <div class="wrapper">
   <header>
-    <h1>👋 关于 AI 工具情报站</h1>
+    <h1>👋 About AI Radar Daily</h1>
   </header>
 
   <div class="intro">
-    Hi,我是 <strong>AIRadar 🛰</strong><br><br>
-    我是一个对 AI 行业感兴趣的独立开发者,
-    每天看不完 AI 新闻,所以做了这个工具,
-    把 10 个最好的 AI 信息源聚合到一起,
-    每天自动抓取、去重、按时间排好,一页看完。
+    Hey — I'm <strong>AIRadar 🛰</strong><br><br>
+    an indie maker who got tired of drowning in AI news.
+    So I built this: it pulls the 10 best AI sources into one page —
+    fetched, de-duped and sorted by time, automatically, every morning.
   </div>
 
   <section class="section">
-    <h2>信息源</h2>
+    <h2>Sources</h2>
     <ul>
-      <li>• Anthropic / OpenAI / Hugging Face 官方博客</li>
-      <li>• Product Hunt AI 新品发布</li>
+      <li>• Anthropic / OpenAI / Hugging Face official blogs</li>
+      <li>• Product Hunt AI launches</li>
       <li>• The Decoder / VentureBeat / MIT Tech Review</li>
-      <li>• ArXiv AI 最新论文</li>
-      <li>• Hacker News (AI 相关)</li>
+      <li>• ArXiv AI papers</li>
+      <li>• Hacker News (AI)</li>
     </ul>
   </section>
 
   <section class="section">
-    <h2>我的承诺</h2>
+    <h2>What I promise</h2>
     <ul class="promise">
-      <li>✓ 完全免费</li>
-      <li>✓ 无广告</li>
-      <li>✓ 不追踪用户</li>
-      <li>✓ 不收集邮箱</li>
-      <li>✓ 开源(代码在 GitHub)</li>
+      <li>✓ Always free</li>
+      <li>✓ No ads</li>
+      <li>✓ No tracking</li>
+      <li>✓ No email sign-up</li>
+      <li>✓ Open source (on GitHub)</li>
     </ul>
   </section>
 
   <section class="section">
-    <h2>怎么实现的</h2>
-    <p>GitHub Actions 每天 8:00 自动跑<br>
-    + Python 并行抓取 10 个 RSS 源(自动去重)<br>
-    + GitHub Pages 静态托管</p>
+    <h2>How it works</h2>
+    <p>Runs on GitHub Actions every morning<br>
+    + Python fetches 10 RSS feeds in parallel (auto de-duped)<br>
+    + hosted free on GitHub Pages</p>
   </section>
 
   <section class="section">
-    <h2>联系我</h2>
+    <h2>Contact</h2>
     <p><strong>GitHub:</strong> <a href="https://github.com/huhui396/ai-tools" target="_blank">github.com/huhui396/ai-tools</a></p>
     <p><strong>Reddit:</strong> <a href="https://reddit.com/user/AIRadarDaily" target="_blank">u/AIRadarDaily</a></p>
   </section>
 
-  <p class="footer-quote">如果你觉得有用,请把这个网站告诉一个朋友 💛</p>
+  <p class="footer-quote">Found it useful? Tell a friend 💛</p>
 
   <div class="center">
-    <a class="back" href="./">← 返回首页</a>
+    <a class="back" href="./">← Back to home</a>
   </div>
 </div>
 </body>
 </html>"""
 def build_html(articles):
-    bj = datetime.now(timezone(timedelta(hours=8)))
-    stamp = bj.strftime("%m-%d %H:%M")
-    # 下次更新时间 (北京时间次日 8:00)
-    next_update = (bj + timedelta(days=1)).replace(hour=8, minute=0, second=0)
-    # 如果当前还没到今天 8:00,下次就是今天 8:00
-    today_8am = bj.replace(hour=8, minute=0, second=0)
-    if bj < today_8am:
-        next_update = today_8am
-    next_update_str = next_update.strftime("%m-%d %H:%M")
+    stamp = datetime.now(timezone.utc).strftime("%b %d, %H:%M")
     by_source = {}
     for a in articles:
         by_source.setdefault(a["source"], []).append(a)
@@ -710,14 +701,14 @@ def build_html(articles):
         )
 
     sections = []
-    # 最新:跨所有源按发布时间倒序,默认隐藏,由"最新"标签切出
+    # Latest: all sources merged, newest first; hidden by default, shown via the "Latest" tab
     recent = sorted((a for a in articles if a.get("ts")),
                     key=lambda a: a["ts"], reverse=True)[:LATEST_LIMIT]
     if recent:
         cards = "\n".join(render_card(it) for it in recent)
         sections.append(
-            f'    <section class="group latest-group hidden" data-source="最新">\n'
-            f'      <h2 class="group-title">最新'
+            f'    <section class="group latest-group hidden" data-source="Latest">\n'
+            f'      <h2 class="group-title">Latest'
             f' <span class="count">{len(recent)}</span></h2>\n'
             f'{cards}\n'
             f'    </section>'
@@ -731,13 +722,12 @@ def build_html(articles):
             f'{cards}\n'
             f'    </section>'
         )
-    body = "\n".join(sections) if sections else '    <p class="empty">暂无内容</p>'
+    body = "\n".join(sections) if sections else '    <p class="empty">Nothing here yet.</p>'
     return (HTML_TEMPLATE
             .replace("/*__SHARED_CSS__*/", SHARED_CSS)
             .replace("__TOTAL__", str(len(articles)))
             .replace("__SOURCES__", str(len(by_source)))
             .replace("__TIME__", stamp)
-            .replace("__NEXT_UPDATE__", next_update_str)
             .replace("__BODY__", body))
 def dedup(items):
     """按链接去重(跨源),保留首次出现的顺序。"""
@@ -846,15 +836,15 @@ def generate_icons():
 def write_pwa():
     """生成 manifest.json 与 service worker,使站点可安装、可离线。"""
     manifest = {
-        "name": "AI 工具情报站",
-        "short_name": "AI 情报站",
-        "description": "每天自动聚合全球 AI 信息源,5 分钟跟上 AI 圈",
+        "name": "AI Radar Daily",
+        "short_name": "AI Radar",
+        "description": "A daily, auto-curated digest of the best AI sources.",
         "start_url": "./",
         "scope": "./",
         "display": "standalone",
         "background_color": "#fafafa",
         "theme_color": "#fafafa",
-        "lang": "zh-CN",
+        "lang": "en",
         "icons": [
             {"src": "icon-192.png", "sizes": "192x192", "type": "image/png",
              "purpose": "any maskable"},
@@ -865,7 +855,7 @@ def write_pwa():
     with open(os.path.join("public", "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
 
-    # network-first:在线总是拿最新,离线回退到缓存
+    # network-first:在线总是拿Latest,离线回退到缓存
     sw = """const CACHE = 'airadar-v1';
 const CORE = ['./', './index.html', './about.html', './og.png', './manifest.json',
               './icon-192.png', './icon-512.png'];
